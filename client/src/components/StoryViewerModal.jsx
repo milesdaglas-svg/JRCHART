@@ -29,8 +29,8 @@ export default function StoryViewerModal({ story, onClose }) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {story.mediaUrl && (
-          <img src={story.mediaUrl} alt="story" style={{ width: "100%", display: "block", maxHeight: 420, objectFit: "cover" }} />
+        {story.mediaBase64 && (
+          <img src={story.mediaBase64} alt="story" style={{ width: "100%", display: "block", maxHeight: 420, objectFit: "cover" }} />
         )}
         <div style={{ padding: 18 }}>
           {story.text && <p style={{ margin: 0, fontSize: "1.02rem" }}>{story.text}</p>}

@@ -17,7 +17,7 @@ const server = http.createServer(app);
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "*";
 
 app.use(cors({ origin: CLIENT_ORIGIN }));
-app.use(express.json());
+app.use(express.json({ limit: "2mb" }));
 
 app.get("/", (req, res) => res.json({ status: "ChatApp API running" }));
 app.use("/api/groups", groupsRouter);

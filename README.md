@@ -32,7 +32,11 @@ member management** are all built. This is the complete app.
   per platform, worth doing later if this becomes a priority.
 
 ### Phase 2 additions
-- **Stories now support photo uploads** (Firebase Storage), not just text.
+- **Stories support photo uploads with no billing account needed.** Firebase
+  Storage now requires a linked billing card even for free-tier usage, so
+  instead photos are compressed client-side (resized + JPEG-compressed to
+  under ~700KB) and stored directly as base64 inside the Firestore story
+  document. No Storage bucket, no card required.
 - **In-chat AI trigger**: type your assistant's name at the start of a
   message (e.g. `Jarvis, tell her I'm running late`) and it drafts + sends a
   contextual reply for you, using Claude and that chat's recent history.
@@ -91,7 +95,11 @@ chat-app/
 3. **Build → Firestore Database → Create database** (start in test mode for now — we'll lock it down with rules before going live).
 4. **Project settings → General → Your apps → Web app (</> icon)** → register an app, copy the `firebaseConfig` object. That goes into `client/src/firebase.js`.
 5. **Project settings → Service accounts → Generate new private key**. This downloads a JSON file — that's what the *server* uses (Firebase Admin SDK) to verify users and enforce admin-only actions. Keep it secret, never commit it.
-6. **Build → Storage → Get started** (needed for story photo uploads). Start in test mode for now, same as Firestore.
+
+Note: Firebase Storage is **not used** — it now requires a linked billing
+account even for free-tier usage. Story photos are compressed client-side
+and stored as base64 directly in Firestore instead, so no card is needed
+anywhere in this setup.
 
 ### Anthropic API key (powers the AI assistant)
 

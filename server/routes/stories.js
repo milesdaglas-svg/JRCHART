@@ -27,18 +27,24 @@ router.get("/", verifyToken, async (req, res) => {
   }
 });
 
-// POST /api/stories → { text? , mediaUrl? }
+// POST /api/stories → { text?, mediaBase64? }
+// mediaBase64 is a data URL (e.g. "data:image/jpeg;base64,...") produced by
+// client-side compression — stored directly in Firestore since there's no
+// Storage bucket (that requires a linked billing account).
 router.post("/", verifyToken, async (req, res) => {
   try {
-    const { text, mediaUrl } = req.body;
-    if (!text && !mediaUrl) {
-      return res.status(400).json({ error: "Story needs text or mediaUrl" });
+    const { text, mediaBase64 } = req.body;
+    if (!text && !mediaBase64) {
+      return res.status(400).json({ error: "Story needs text or a photo" });
+    }
+    if (mediaBase64 && mediaBase64.length > 900_000) {
+      return res.status(413).json({ error: "That photo is too large — try a smaller one" });
     }
 
     const ref = await db.collection("stories").add({
       userId: req.user.uid,
       text: text || null,
-      mediaUrl: mediaUrl || null,
+      mediaBase64: mediaBase64 || null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
     res.status(201).json({ id: ref.id });

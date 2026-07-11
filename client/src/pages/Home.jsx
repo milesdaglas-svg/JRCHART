@@ -9,7 +9,7 @@ import StoryComposerModal from "../components/StoryComposerModal.jsx";
 import StoryViewerModal from "../components/StoryViewerModal.jsx";
 import QuickAppsPanel from "../components/QuickAppsPanel.jsx";
 import VoiceAssistant from "../components/VoiceAssistant.jsx";
-import { uploadStoryMedia } from "../utils/uploadStoryMedia.js";
+import { compressImageToBase64 } from "../utils/compressImage.js";
 import { Link } from "react-router-dom";
 
 export default function Home() {
@@ -139,13 +139,13 @@ export default function Home() {
   }
 
   async function handleAddStory({ text, file }) {
-    let mediaUrl = null;
+    let mediaBase64 = null;
     if (file) {
-      mediaUrl = await uploadStoryMedia(profile.id, file);
+      mediaBase64 = await compressImageToBase64(file);
     }
     await authedFetch("/api/stories", {
       method: "POST",
-      body: JSON.stringify({ text: text || null, mediaUrl }),
+      body: JSON.stringify({ text: text || null, mediaBase64 }),
     });
     const s = await authedFetch("/api/stories").catch(() => []);
     setStories(s);
@@ -192,9 +192,9 @@ export default function Home() {
                 className="story-avatar"
                 title={s.text || "Story"}
                 onClick={() => setViewingStory(s)}
-                style={s.mediaUrl ? { backgroundImage: `url(${s.mediaUrl})`, backgroundSize: "cover" } : undefined}
+                style={s.mediaBase64 ? { backgroundImage: `url(${s.mediaBase64})`, backgroundSize: "cover" } : undefined}
               >
-                {!s.mediaUrl && (s.userId || "?").slice(0, 2).toUpperCase()}
+                {!s.mediaBase64 && (s.userId || "?").slice(0, 2).toUpperCase()}
               </div>
             ))}
         </div>
