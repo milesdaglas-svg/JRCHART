@@ -35,6 +35,12 @@ function registerChatSocket(io) {
       socket.to(payload.roomId).emit("new-message", payload.message);
     });
 
+    // payload: { roomId, messageId } — broadcasts a deletion so the other
+    // person's chat updates instantly too, after the REST DELETE succeeds.
+    socket.on("delete-message", (payload) => {
+      socket.to(payload.roomId).emit("message-deleted", payload.messageId);
+    });
+
     socket.on("typing", ({ roomId, userId, isTyping }) => {
       socket.to(roomId).emit("user-typing", { userId, isTyping });
     });

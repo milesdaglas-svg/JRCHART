@@ -54,6 +54,9 @@ export default function Home() {
       socketRef.current.on("new-message", (msg) => {
         setMessages((prev) => [...prev, msg]);
       });
+      socketRef.current.on("message-deleted", (messageId) => {
+        setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      });
     })();
 
     return () => socketRef.current?.disconnect();
@@ -78,6 +81,13 @@ export default function Home() {
   }, [messages]);
 
   const aiName = profile?.aiName || "Jarvis";
+
+  async function handleDeleteMessage(messageId) {
+    if (!activeGroup) return;
+    await authedFetch(`/api/groups/${activeGroup.id}/messages/${messageId}`, { method: "DELETE" }).catch((err) => alert(err.message));
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    socketRef.current?.emit("delete-message", { roomId: activeGroup.id, messageId });
+  }
 
   async function sendMessageToGroup(groupId, text) {
     const { id } = await authedFetch(`/api/groups/${groupId}/messages`, {
@@ -183,17 +193,22 @@ export default function Home() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${activeGroup && tab === "chats" ? " chat-open" : ""}`}>
       <nav className="icon-rail">
         <div className="brand-dot" title="ChatApp" />
         <button className={`rail-btn ${tab === "chats" ? "active" : ""}`} onClick={() => setTab("chats")} title="Chats">
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 10c0-3.3 3.6-6 8-6s8 2.7 8 6-3.6 6-8 6c-.9 0-1.8-.1-2.6-.3L6 19l1.2-4.4C5.2 13.2 4 11.7 4 10z" />
-  </svg>
-</button>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 10c0-3.3 3.6-6 8-6s8 2.7 8 6-3.6 6-8 6c-.9 0-1.8-.1-2.6-.3L6 19l1.2-4.4C5.2 13.2 4 11.7 4 10z" />
+          </svg>
+        </button>
         <button className={`rail-btn ${tab === "status" ? "active" : ""}`} onClick={() => setTab("status")} title="Status">⭐</button>
         <button className={`rail-btn ${tab === "people" ? "active" : ""}`} onClick={() => setTab("people")} title="People">👥</button>
-        <button className={`rail-btn ${tab === "feed" ? "active" : ""}`} onClick={() => setTab("feed")} title="Feed">🖼️</button>
+        <button className={`rail-btn ${tab === "feed" ? "active" : ""}`} onClick={() => setTab("feed")} title="Posts">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <path d="M12 3.5C6.5 3.8 3.7 6.4 3.5 12M20.5 8.2C20.2 5.2 17.8 2.9 14.8 2.6M20.5 15.8C20.2 18.8 17.8 21.1 14.8 21.4M3.5 12c.2 5.6 3 8.2 8.5 8.5" />
+            <path d="M12 9v6M9 12h6" strokeWidth="2.5" />
+          </svg>
+        </button>
         <div className="rail-spacer" />
         <button className="rail-btn" onClick={() => setShowQuickApps(true)} title="Quick reply elsewhere">🔗</button>
         <Link className="rail-btn" to="/settings" title="Settings">⚙️</Link>
@@ -285,6 +300,7 @@ export default function Home() {
         {activeGroup ? (
           <>
             <div className="chat-topbar">
+              <button className="back-btn" onClick={() => setActiveGroup(null)} title="Back">‹</button>
               <div className="avatar-badge">{groupLabel(activeGroup)?.slice(0, 2).toUpperCase()}</div>
               <div style={{ flex: 1 }}>
                 <div className="chat-list-name">{groupLabel(activeGroup)}</div>
@@ -301,7 +317,12 @@ export default function Home() {
 
             <div className="messages">
               {messages.map((m) => (
-                <MessageBubble key={m.id} message={m} isMine={m.senderId === profile?.id} />
+                <MessageBubble
+                  key={m.id}
+                  message={m}
+                  isMine={m.senderId === profile?.id}
+                  onDelete={() => handleDeleteMessage(m.id)}
+                />
               ))}
               <div ref={messagesEndRef} />
             </div>

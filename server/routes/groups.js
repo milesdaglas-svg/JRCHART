@@ -152,8 +152,8 @@ router.get("/:id/messages", verifyToken, async (req, res) => {
 router.post("/:id/messages", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { text } = req.body;
-    if (!text) return res.status(400).json({ error: "Message text required" });
+    const { text, sharedPost } = req.body;
+    if (!text && !sharedPost) return res.status(400).json({ error: "Message text required" });
 
     const groupDoc = await db.collection("groups").doc(id).get();
     if (!groupDoc.exists) return res.status(404).json({ error: "Group not found" });
@@ -163,17 +163,33 @@ router.post("/:id/messages", verifyToken, async (req, res) => {
       return res.status(403).json({ error: "Only the admin can post updates here" });
     }
 
-    const msgRef = await db
-      .collection("groups")
-      .doc(id)
-      .collection("messages")
-      .add({
-        senderId: req.user.uid,
-        text,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+    const payload = {
+      senderId: req.user.uid,
+      text: text || "",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    if (sharedPost) payload.sharedPost = sharedPost;
+
+    const msgRef = await db.collection("groups").doc(id).collection("messages").add(payload);
 
     res.status(201).json({ id: msgRef.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/groups/:id/messages/:messageId → only your own message
+router.delete("/:id/messages/:messageId", verifyToken, async (req, res) => {
+  try {
+    const { id, messageId } = req.params;
+    const msgRef = db.collection("groups").doc(id).collection("messages").doc(messageId);
+    const msgDoc = await msgRef.get();
+    if (!msgDoc.exists) return res.status(404).json({ error: "Message not found" });
+    if (msgDoc.data().senderId !== req.user.uid) {
+      return res.status(403).json({ error: "You can only delete your own messages" });
+    }
+    await msgRef.delete();
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

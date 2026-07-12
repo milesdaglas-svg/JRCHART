@@ -17,6 +17,31 @@ member management** are all built. This is the complete app.
   (hidden on Announcements, since everyone joins that automatically) — type
   an email, and if that person has an account, they're added instantly.
 
+### Latest upgrade — video posts, save/share, search, message deletion, navy theme
+- **Video posts.** Requires a free Cloudinary account (no card) — sign up,
+  grab your Cloud Name, add an "Unsigned" upload preset. Set
+  `VITE_CLOUDINARY_CLOUD_NAME` and `VITE_CLOUDINARY_UPLOAD_PRESET` in
+  `client/.env`. Videos upload straight from the browser to Cloudinary;
+  photos still use the free base64-in-Firestore trick from before.
+- **Save (bookmark) posts** — a Saved toggle in the Feed shows everything
+  you've bookmarked.
+- **Share posts into a chat** — the ↗ icon opens a picker of your chats;
+  sharing drops a compact preview card into that conversation.
+- **Topic search + light personalization** — `#hashtags` in post text are
+  searchable, tap one to browse just that topic. The default feed also
+  quietly leans toward topics you've liked before.
+- **Delete your own chat messages** — hover a message you sent, a small ✕
+  appears; deletes for both people in the chat instantly.
+- **New default accent color**: `#1e2857` (navy), still fully changeable
+  from the admin panel.
+- **Admin console is easier to find** — a quiet "Owner console →" link now
+  sits at the bottom of Settings, since `/control` is password-gated anyway
+  and safe to link. (Reminder: the sidebar 🛠️ icon only shows if your
+  Firestore user doc has `isAdmin: true` — that's separate from `/control`.)
+- **Mobile fix**: opening a DM/chat on a phone was silently failing because
+  a CSS class the layout depended on was never being toggled. Fixed, with a
+  back arrow added so you can return to the chat list.
+
 ### Latest upgrade — free AI, Instagram-style feed
 - **AI now runs on Google Gemini instead of paid Anthropic API.** Gemini has
   a genuinely free tier — no billing card needed. Get a key at

@@ -66,6 +66,12 @@ export default function Settings() {
           color changes are turned off.
         </p>
       )}
+
+      <div style={{ marginTop: 40, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
+        <Link to="/control" className="link-text" style={{ fontSize: "0.8rem" }}>
+          Owner console →
+        </Link>
+      </div>
     </div>
   );
 }

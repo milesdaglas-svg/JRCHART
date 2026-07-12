@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 
-const PRESETS = ["#7c5cff", "#4c8bf5", "#2fd9c4", "#e0a12b", "#ef5a63", "#ec4899"];
+const PRESETS = ["#1e2857", "#4c8bf5", "#2fd9c4", "#e0a12b", "#ef5a63", "#ec4899"];
 
 export default function Admin() {
   const { globalConfig, setGlobalTheme, setAllowOverride } = useTheme();

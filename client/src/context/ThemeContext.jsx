@@ -6,10 +6,10 @@ const ThemeContext = createContext(null);
 // Converts a hex color (any color the admin picks) to an "r, g, b" string so
 // CSS can build rgba() glows/shadows from it regardless of which color it is.
 function hexToRgbString(hex) {
-  const clean = (hex || "#7c5cff").replace("#", "");
+  const clean = (hex || "#1e2857").replace("#", "");
   const full = clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean;
   const num = parseInt(full, 16);
-  if (Number.isNaN(num)) return "124, 92, 255";
+  if (Number.isNaN(num)) return "30, 40, 87";
   const r = (num >> 16) & 255;
   const g = (num >> 8) & 255;
   const b = num & 255;
@@ -19,7 +19,7 @@ function hexToRgbString(hex) {
 export function ThemeProvider({ children }) {
   const { authedFetch, profile, firebaseUser } = useAuth();
   const [globalConfig, setGlobalConfig] = useState({
-    themeColor: "#7c5cff",
+    themeColor: "#1e2857",
     allowUserThemeOverride: false,
   });
 
