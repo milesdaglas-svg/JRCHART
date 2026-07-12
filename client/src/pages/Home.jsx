@@ -12,6 +12,7 @@ import QuickAppsPanel from "../components/QuickAppsPanel.jsx";
 import VoiceAssistant from "../components/VoiceAssistant.jsx";
 import PeopleList from "../components/PeopleList.jsx";
 import StatusFeed from "../components/StatusFeed.jsx";
+import Feed from "../components/Feed.jsx";
 import { compressImageToBase64 } from "../utils/compressImage.js";
 
 export default function Home() {
@@ -188,6 +189,7 @@ export default function Home() {
         <button className={`rail-btn ${tab === "chats" ? "active" : ""}`} onClick={() => setTab("chats")} title="Chats">💬</button>
         <button className={`rail-btn ${tab === "status" ? "active" : ""}`} onClick={() => setTab("status")} title="Status">⭐</button>
         <button className={`rail-btn ${tab === "people" ? "active" : ""}`} onClick={() => setTab("people")} title="People">👥</button>
+        <button className={`rail-btn ${tab === "feed" ? "active" : ""}`} onClick={() => setTab("feed")} title="Feed">🖼️</button>
         <div className="rail-spacer" />
         <button className="rail-btn" onClick={() => setShowQuickApps(true)} title="Quick reply elsewhere">🔗</button>
         <Link className="rail-btn" to="/settings" title="Settings">⚙️</Link>
@@ -197,6 +199,12 @@ export default function Home() {
         <button className="rail-btn" onClick={logout} title="Log out">⎋</button>
       </nav>
 
+      {tab === "feed" ? (
+        <div style={{ gridColumn: "2 / 4", overflow: "hidden", background: "var(--bg-app)" }}>
+          <Feed authedFetch={authedFetch} myId={profile?.id} />
+        </div>
+      ) : (
+        <>
       <aside className="list-panel">
         <div className="list-panel-header">
           <span className="list-panel-title">
@@ -320,6 +328,8 @@ export default function Home() {
           <div style={{ margin: "auto", color: "var(--text-secondary)" }}>Pick a chat to get started.</div>
         )}
       </section>
+        </>
+      )}
 
       {showGroupModal && (
         <GroupModal onClose={() => setShowGroupModal(false)} onCreate={handleCreateGroup} />

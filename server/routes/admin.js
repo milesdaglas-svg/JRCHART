@@ -12,7 +12,7 @@ router.get("/config", verifyToken, async (req, res) => {
     const doc = await CONFIG_REF().get();
     const data = doc.exists
       ? doc.data()
-      : { themeColor: "#25D366", allowUserThemeOverride: false };
+      : { themeColor: "#7c5cff", allowUserThemeOverride: false };
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });

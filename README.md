@@ -17,6 +17,21 @@ member management** are all built. This is the complete app.
   (hidden on Announcements, since everyone joins that automatically) — type
   an email, and if that person has an account, they're added instantly.
 
+### Latest upgrade — free AI, Instagram-style feed
+- **AI now runs on Google Gemini instead of paid Anthropic API.** Gemini has
+  a genuinely free tier — no billing card needed. Get a key at
+  https://aistudio.google.com/apikey (same Google account as Firebase) and
+  set it as `GEMINI_API_KEY` in `server/.env`. `ANTHROPIC_API_KEY` is no
+  longer used anywhere.
+- **New Feed tab** (🖼️ icon in the rail) — an Instagram-style scrollable feed:
+  post text and/or a photo, like posts, comment on them, delete your own
+  posts. Uses the same no-billing base64-in-Firestore trick as Stories.
+- **Honest limitation — video isn't in yet.** Firestore documents cap at
+  1MB, so video can't be stored the same way photos are. Real video needs
+  either paid Firebase Storage or a separate free media host (e.g.
+  Cloudinary has a genuine free tier with video support) — that's the next
+  concrete step if video posting becomes a priority.
+
 ### Latest upgrade — dark redesign, friends, tabs, owner console
 - **Full dark theme.** Replaced the old green/parchment look with a modern
   dark UI (charcoal surfaces, admin-adjustable accent color). This is a
@@ -123,11 +138,12 @@ account even for free-tier usage. Story photos are compressed client-side
 and stored as base64 directly in Firestore instead, so no card is needed
 anywhere in this setup.
 
-### Anthropic API key (powers the AI assistant)
+### Gemini API key (powers the AI assistant — free, no card needed)
 
-Get a key from https://console.anthropic.com and put it in `server/.env` as
-`ANTHROPIC_API_KEY`. This is what drives both the in-chat "type the AI's name"
-trigger and the voice assistant's command understanding.
+Get a key at https://aistudio.google.com/apikey (sign in with the same
+Google account you used for Firebase) and put it in `server/.env` as
+`GEMINI_API_KEY`. This drives both the in-chat "type the AI's name" trigger
+and the voice assistant's command understanding — no billing involved.
 
 ### Firestore collections this app uses
 - `users/{uid}` → `{ displayName, email, isAdmin, themeColor, createdAt }`

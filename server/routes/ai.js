@@ -1,11 +1,36 @@
 const express = require("express");
-const Anthropic = require("@anthropic-ai/sdk");
 const { db, admin } = require("../firebaseAdmin");
 const { verifyToken } = require("../middleware/verifyToken");
 
 const router = express.Router();
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const MODEL = "claude-sonnet-4-6";
+
+// Google Gemini has a genuinely free tier (no billing card required) — get a
+// key at https://aistudio.google.com/apikey with the same Google account
+// used for Firebase. Set it as GEMINI_API_KEY in server/.env.
+const GEMINI_MODEL = "gemini-1.5-flash";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+async function askGemini(systemPrompt, userPrompt) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not set on the server");
+
+  const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Gemini request failed: ${res.status} ${body}`);
+  }
+
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.map((p) => p.text).join("").trim() || "";
+}
 
 async function getRecentMessages(groupId, limit = 12) {
   const snap = await db
@@ -38,30 +63,15 @@ router.post("/compose", verifyToken, async (req, res) => {
 
     const history = await getRecentMessages(groupId);
 
-    const completion = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 300,
-      system:
-        "You are a helpful messaging assistant drafting one chat reply on " +
+    const draftText = await askGemini(
+      "You are a helpful messaging assistant drafting one chat reply on " +
         "behalf of the app's user. Keep it short, natural, and in the voice " +
         "of a real person texting - no greetings-as-headers, no signing off, " +
         "just the message text itself. Never add quotation marks around it.",
-      messages: [
-        {
-          role: "user",
-          content:
-            `Recent conversation (most recent last):\n${history || "(no messages yet)"}\n\n` +
-            `The user's instruction for what to reply: "${instruction}"\n\n` +
-            "Write just the reply message, nothing else.",
-        },
-      ],
-    });
-
-    const draftText = completion.content
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
-      .join("")
-      .trim();
+      `Recent conversation (most recent last):\n${history || "(no messages yet)"}\n\n` +
+        `The user's instruction for what to reply: "${instruction}"\n\n` +
+        "Write just the reply message, nothing else."
+    );
 
     const msgRef = await db
       .collection("groups")
@@ -94,11 +104,8 @@ router.post("/command", verifyToken, async (req, res) => {
 
     const groupList = availableGroups.map((g) => `- ${g.name} (id: ${g.id})`).join("\n");
 
-    const completion = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 300,
-      system:
-        "You are a voice assistant embedded in a chat app. The user just " +
+    const raw = await askGemini(
+      "You are a voice assistant embedded in a chat app. The user just " +
         "spoke a command after a wake word. Decide if they want to send a " +
         "message to one of their chats, and if so, to which one and with " +
         "what text. Respond with ONLY valid JSON, no markdown fences, no " +
@@ -108,22 +115,10 @@ router.post("/command", verifyToken, async (req, res) => {
         "If the command doesn't clearly name one of the available chats and " +
         "isn't an obvious continuation for the currently open chat, use " +
         '"action": "none" and explain briefly in "speech".',
-      messages: [
-        {
-          role: "user",
-          content:
-            `Available chats:\n${groupList || "(none)"}\n\n` +
-            `Currently open chat id: ${activeGroupId || "none"}\n\n` +
-            `Spoken command: "${transcript}"`,
-        },
-      ],
-    });
-
-    const raw = completion.content
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
-      .join("")
-      .trim();
+      `Available chats:\n${groupList || "(none)"}\n\n` +
+        `Currently open chat id: ${activeGroupId || "none"}\n\n` +
+        `Spoken command: "${transcript}"`
+    );
 
     let parsed;
     try {
