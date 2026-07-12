@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { API_URL, auth } from "../firebase";
 import MessageBubble from "../components/MessageBubble.jsx";
@@ -9,11 +10,13 @@ import StoryComposerModal from "../components/StoryComposerModal.jsx";
 import StoryViewerModal from "../components/StoryViewerModal.jsx";
 import QuickAppsPanel from "../components/QuickAppsPanel.jsx";
 import VoiceAssistant from "../components/VoiceAssistant.jsx";
+import PeopleList from "../components/PeopleList.jsx";
+import StatusFeed from "../components/StatusFeed.jsx";
 import { compressImageToBase64 } from "../utils/compressImage.js";
-import { Link } from "react-router-dom";
 
 export default function Home() {
   const { profile, authedFetch, logout } = useAuth();
+  const [tab, setTab] = useState("chats"); // chats | status | people
   const [groups, setGroups] = useState([]);
   const [activeGroup, setActiveGroup] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -27,14 +30,19 @@ export default function Home() {
   const [aiBusy, setAiBusy] = useState(false);
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const textareaRef = useRef(null);
+
+  async function refreshGroups() {
+    const g = await authedFetch("/api/groups").catch(() => []);
+    setGroups(g);
+    return g;
+  }
 
   // --- initial load: groups + stories, and connect the socket ---
   useEffect(() => {
     (async () => {
-      const g = await authedFetch("/api/groups").catch(() => []);
-      setGroups(g);
+      const g = await refreshGroups();
       if (g.length) setActiveGroup(g[0]);
-
       const s = await authedFetch("/api/stories").catch(() => []);
       setStories(s);
     })();
@@ -50,7 +58,7 @@ export default function Home() {
     return () => socketRef.current?.disconnect();
   }, []);
 
-  // --- join the socket room whenever the active chat changes ---
+  // --- load history + join room whenever the active chat changes ---
   useEffect(() => {
     if (!activeGroup) return;
 
@@ -70,8 +78,6 @@ export default function Home() {
 
   const aiName = profile?.aiName || "Jarvis";
 
-  // Posts a plain message to any group by id, then broadcasts it over the
-  // socket. Shared by the composer and the voice assistant's hands-free sends.
   async function sendMessageToGroup(groupId, text) {
     const { id } = await authedFetch(`/api/groups/${groupId}/messages`, {
       method: "POST",
@@ -90,10 +96,8 @@ export default function Home() {
 
     const text = draft.trim();
     setDraft("");
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
 
-    // In-chat AI trigger: typing the assistant's name drafts and sends a
-    // reply for the user instead of sending the literal typed text.
-    // e.g. "Jarvis, tell her I'm running 10 minutes late"
     const triggerPattern = new RegExp(`^${aiName}[,:]?\\s+`, "i");
     if (triggerPattern.test(text)) {
       const instruction = text.replace(triggerPattern, "");
@@ -121,6 +125,22 @@ export default function Home() {
     }
   }
 
+  function handleDraftChange(e) {
+    setDraft(e.target.value);
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+    }
+  }
+
+  function handleComposerKeyDown(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend(e);
+    }
+  }
+
   async function handleAddMember(email) {
     await authedFetch(`/api/groups/${activeGroup.id}/members`, {
       method: "POST",
@@ -133,16 +153,14 @@ export default function Home() {
       method: "POST",
       body: JSON.stringify({ name }),
     });
-    const g = await authedFetch("/api/groups").catch(() => []);
-    setGroups(g);
+    const g = await refreshGroups();
     setActiveGroup(g.find((x) => x.id === id) || g[0]);
+    setTab("chats");
   }
 
   async function handleAddStory({ text, file }) {
     let mediaBase64 = null;
-    if (file) {
-      mediaBase64 = await compressImageToBase64(file);
-    }
+    if (file) mediaBase64 = await compressImageToBase64(file);
     await authedFetch("/api/stories", {
       method: "POST",
       body: JSON.stringify({ text: text || null, mediaBase64 }),
@@ -151,33 +169,42 @@ export default function Home() {
     setStories(s);
   }
 
+  async function handleOpenDM(groupId) {
+    const g = await refreshGroups();
+    setActiveGroup(g.find((x) => x.id === groupId) || null);
+    setTab("chats");
+  }
+
   const myStoryPosted = stories.some((s) => s.userId === profile?.id);
+
+  function groupLabel(g) {
+    return g.isDM ? g.displayName || "Direct message" : g.name;
+  }
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <span className="brand">Chat<span className="brand-mark">App</span></span>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button
-              onClick={() => setShowQuickApps(true)}
-              style={{ background: "none", border: "none", color: "#f7f4ea", fontSize: "1.1rem" }}
-              title="Quick reply on other apps"
-            >
-              🔗
-            </button>
-            <Link to="/settings" style={{ color: "#f7f4ea", fontSize: "1.1rem" }} title="Settings">⚙️</Link>
-            {profile?.isAdmin && (
-              <Link to="/admin" style={{ color: "#f7f4ea", fontSize: "1.1rem" }} title="Admin">🛠️</Link>
-            )}
-            <button
-              onClick={logout}
-              style={{ background: "none", border: "none", color: "#f7f4ea", fontSize: "1.1rem" }}
-              title="Log out"
-            >
-              ⎋
-            </button>
-          </div>
+      <nav className="icon-rail">
+        <div className="brand-dot" title="ChatApp" />
+        <button className={`rail-btn ${tab === "chats" ? "active" : ""}`} onClick={() => setTab("chats")} title="Chats">💬</button>
+        <button className={`rail-btn ${tab === "status" ? "active" : ""}`} onClick={() => setTab("status")} title="Status">⭐</button>
+        <button className={`rail-btn ${tab === "people" ? "active" : ""}`} onClick={() => setTab("people")} title="People">👥</button>
+        <div className="rail-spacer" />
+        <button className="rail-btn" onClick={() => setShowQuickApps(true)} title="Quick reply elsewhere">🔗</button>
+        <Link className="rail-btn" to="/settings" title="Settings">⚙️</Link>
+        {profile?.isAdmin && (
+          <Link className="rail-btn" to="/admin" title="Admin">🛠️</Link>
+        )}
+        <button className="rail-btn" onClick={logout} title="Log out">⎋</button>
+      </nav>
+
+      <aside className="list-panel">
+        <div className="list-panel-header">
+          <span className="list-panel-title">
+            {tab === "chats" ? "Chats" : tab === "status" ? "Status" : "People"}
+          </span>
+          {tab === "chats" && (
+            <button className="icon-btn" onClick={() => setShowGroupModal(true)} title="New group">+</button>
+          )}
         </div>
 
         <div className="story-rail">
@@ -207,50 +234,53 @@ export default function Home() {
           onExecuteSend={sendMessageToGroup}
         />
 
-        <div style={{ padding: "10px 16px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ color: "rgba(247,244,234,0.6)", fontSize: "0.78rem", fontWeight: 600 }}>CHATS</span>
-          <button
-            onClick={() => setShowGroupModal(true)}
-            style={{ background: "none", border: "none", color: "var(--brass)", fontSize: "1.3rem" }}
-            title="New group"
-          >
-            +
-          </button>
-        </div>
-
-        <div className="chat-list">
-          {groups.map((g) => (
-            <div
-              key={g.id}
-              className={`chat-list-item ${activeGroup?.id === g.id ? "active" : ""}`}
-              onClick={() => setActiveGroup(g)}
-            >
-              <div className="avatar-badge">{g.name?.slice(0, 2).toUpperCase()}</div>
-              <div>
-                <div className="chat-list-name">
-                  {g.name} {g.isDefault && "📢"}
-                </div>
-                <div className="chat-list-preview">
-                  {g.isDefault ? "Admin updates land here" : "Tap to open"}
+        {tab === "chats" && (
+          <div className="scroll-panel">
+            {groups.map((g) => (
+              <div
+                key={g.id}
+                className={`chat-list-item ${activeGroup?.id === g.id ? "active" : ""}`}
+                onClick={() => setActiveGroup(g)}
+              >
+                <div className="avatar-badge">{groupLabel(g)?.slice(0, 2).toUpperCase()}</div>
+                <div>
+                  <div className="chat-list-name">
+                    {groupLabel(g)} {g.isDefault && "📢"}
+                  </div>
+                  <div className="chat-list-preview">
+                    {g.isDefault ? "Admin updates land here" : g.isDM ? "Direct message" : "Tap to open"}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
+
+        {tab === "status" && (
+          <StatusFeed
+            stories={stories}
+            myId={profile?.id}
+            myStoryPosted={myStoryPosted}
+            onAddStory={() => setShowStoryComposer(true)}
+            onView={setViewingStory}
+          />
+        )}
+
+        {tab === "people" && <PeopleList authedFetch={authedFetch} onOpenDM={handleOpenDM} />}
       </aside>
 
       <section className="chat-window">
         {activeGroup ? (
           <>
             <div className="chat-topbar">
-              <div className="avatar-badge">{activeGroup.name?.slice(0, 2).toUpperCase()}</div>
+              <div className="avatar-badge">{groupLabel(activeGroup)?.slice(0, 2).toUpperCase()}</div>
               <div style={{ flex: 1 }}>
-                <div className="chat-list-name" style={{ color: "var(--ink)" }}>{activeGroup.name}</div>
+                <div className="chat-list-name">{groupLabel(activeGroup)}</div>
                 {activeGroup.isDefault && (
-                  <div style={{ fontSize: "0.78rem", color: "#5b6b62" }}>Only the admin posts here</div>
+                  <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>Only the admin posts here</div>
                 )}
               </div>
-              {!activeGroup.isDefault && (
+              {!activeGroup.isDefault && !activeGroup.isDM && (
                 <button className="btn-outline" style={{ padding: "6px 14px", fontSize: "0.82rem" }} onClick={() => setShowAddMember(true)}>
                   + Add person
                 </button>
@@ -265,9 +295,12 @@ export default function Home() {
             </div>
 
             <form className="composer" onSubmit={handleSend}>
-              <input
+              <textarea
+                ref={textareaRef}
                 value={draft}
-                onChange={(e) => setDraft(e.target.value)}
+                onChange={handleDraftChange}
+                onKeyDown={handleComposerKeyDown}
+                rows={1}
                 placeholder={
                   activeGroup.isDefault && !profile?.isAdmin
                     ? "Only the admin can post here"
@@ -279,12 +312,12 @@ export default function Home() {
                 className="btn-accent"
                 disabled={(activeGroup.isDefault && !profile?.isAdmin) || aiBusy}
               >
-                {aiBusy ? `${aiName} is typing…` : "Send"}
+                {aiBusy ? `${aiName}…` : "Send"}
               </button>
             </form>
           </>
         ) : (
-          <div style={{ margin: "auto", color: "#5b6b62" }}>Pick a chat to get started.</div>
+          <div style={{ margin: "auto", color: "var(--text-secondary)" }}>Pick a chat to get started.</div>
         )}
       </section>
 

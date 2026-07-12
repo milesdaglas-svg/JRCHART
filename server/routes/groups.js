@@ -28,7 +28,21 @@ router.get("/", verifyToken, async (req, res) => {
       .collection("groups")
       .where("members", "array-contains", req.user.uid)
       .get();
-    const groups = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+    const groups = await Promise.all(
+      snap.docs.map(async (d) => {
+        const data = { id: d.id, ...d.data() };
+        if (data.isDM && !data.name) {
+          const otherUid = (data.members || []).find((uid) => uid !== req.user.uid);
+          if (otherUid) {
+            const otherDoc = await db.collection("users").doc(otherUid).get();
+            data.displayName = otherDoc.data()?.displayName || "Direct message";
+          }
+        }
+        return data;
+      })
+    );
+
     res.json(groups);
   } catch (err) {
     res.status(500).json({ error: err.message });

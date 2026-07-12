@@ -10,12 +10,12 @@ export default function Admin() {
     <div className="admin-panel">
       <Link to="/" className="link-text">← Back to chats</Link>
       <h1>Admin</h1>
-      <p style={{ color: "#5b6b62" }}>
+      <p style={{ color: "var(--text-secondary)" }}>
         Changes here apply to every user of the app.
       </p>
 
       <h2 style={{ fontSize: "1.05rem", marginTop: 28 }}>App-wide accent color</h2>
-      <p style={{ fontSize: "0.85rem", color: "#5b6b62" }}>
+      <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
         This sets the default color everyone sees. Pick any color at all —
         not just the presets below.
       </p>
@@ -41,7 +41,7 @@ export default function Admin() {
       <div className="toggle-row">
         <div>
           <div style={{ fontWeight: 600 }}>Let users pick their own color</div>
-          <div style={{ fontSize: "0.82rem", color: "#5b6b62" }}>
+          <div style={{ fontSize: "0.82rem", color: "var(--text-secondary)" }}>
             When on, each person can override the app-wide color with any
             color they like, just for themselves.
           </div>
@@ -54,7 +54,7 @@ export default function Admin() {
         />
       </div>
 
-      <p style={{ marginTop: 24, fontSize: "0.82rem", color: "#5b6b62" }}>
+      <p style={{ marginTop: 24, fontSize: "0.82rem", color: "var(--text-secondary)" }}>
         More admin controls (broadcasting update notes to Announcements,
         promoting other admins) are wired up on the backend — hook up
         additional UI here as needed.

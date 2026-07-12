@@ -5,6 +5,7 @@ import Register from "./pages/Register.jsx";
 import Home from "./pages/Home.jsx";
 import Admin from "./pages/Admin.jsx";
 import Settings from "./pages/Settings.jsx";
+import ControlPanel from "./pages/ControlPanel.jsx";
 
 function Protected({ children }) {
   const { firebaseUser, loading } = useAuth();
@@ -51,6 +52,7 @@ export default function App() {
           </Protected>
         }
       />
+      <Route path="/control" element={<ControlPanel />} />
     </Routes>
   );
 }

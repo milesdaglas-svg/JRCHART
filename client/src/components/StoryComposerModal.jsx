@@ -29,7 +29,7 @@ export default function StoryComposerModal({ onClose, onSubmit }) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(23,35,29,0.6)",
+        background: "rgba(0,0,0,0.65)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

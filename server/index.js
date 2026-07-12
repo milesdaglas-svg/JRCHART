@@ -9,6 +9,8 @@ const { router: storiesRouter } = require("./routes/stories");
 const { router: adminRouter } = require("./routes/admin");
 const { router: usersRouter } = require("./routes/users");
 const { router: aiRouter } = require("./routes/ai");
+const { router: friendsRouter } = require("./routes/friends");
+const { router: rootRouter } = require("./routes/root");
 const { registerChatSocket } = require("./socket/chatSocket");
 
 const app = express();
@@ -25,6 +27,8 @@ app.use("/api/stories", storiesRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/ai", aiRouter);
+app.use("/api/friends", friendsRouter);
+app.use("/api/root", rootRouter);
 
 const io = new Server(server, { cors: { origin: CLIENT_ORIGIN } });
 registerChatSocket(io);

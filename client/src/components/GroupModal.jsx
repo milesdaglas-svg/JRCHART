@@ -17,7 +17,7 @@ export default function GroupModal({ onClose, onCreate }) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(23,35,29,0.5)",
+        background: "rgba(0,0,0,0.6)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

@@ -10,7 +10,7 @@ export default function StoryViewerModal({ story, onClose }) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(20, 39, 32, 0.92)",
+        background: "rgba(0,0,0,0.75)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -22,7 +22,7 @@ export default function StoryViewerModal({ story, onClose }) {
         style={{
           width: 360,
           maxWidth: "90vw",
-          background: "var(--ivory)",
+          background: "var(--bg-sidebar)",
           borderRadius: 14,
           overflow: "hidden",
           borderTop: "4px solid var(--accent)",
@@ -34,7 +34,7 @@ export default function StoryViewerModal({ story, onClose }) {
         )}
         <div style={{ padding: 18 }}>
           {story.text && <p style={{ margin: 0, fontSize: "1.02rem" }}>{story.text}</p>}
-          <p style={{ margin: "10px 0 0", fontSize: "0.75rem", color: "#5b6b62" }}>
+          <p style={{ margin: "10px 0 0", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
             Posted {postedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · disappears in 24h
           </p>
         </div>

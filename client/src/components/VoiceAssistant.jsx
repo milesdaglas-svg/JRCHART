@@ -126,8 +126,8 @@ export default function VoiceAssistant({ aiName, groups, activeGroupId, authedFe
           padding: "6px 12px",
           borderRadius: 8,
           background: "transparent",
-          border: `1.5px solid ${enabled ? "var(--accent)" : "var(--brass)"}`,
-          color: enabled ? "var(--accent)" : "var(--ivory)",
+          border: `1.5px solid ${enabled ? "var(--accent)" : "var(--border)"}`,
+          color: enabled ? "var(--accent)" : "var(--text-secondary)",
         }}
         title={`Say "hey ${aiName}" to wake it up`}
       >

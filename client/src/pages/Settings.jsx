@@ -32,7 +32,7 @@ export default function Settings() {
       <h1>Settings</h1>
 
       <h2 style={{ fontSize: "1.05rem", marginTop: 24 }}>Your AI assistant's name</h2>
-      <p style={{ fontSize: "0.85rem", color: "#5b6b62" }}>
+      <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
         This is the wake word ("hey {aiNameInput}") and what you type in a
         chat to have it draft a reply for you (e.g. "{aiNameInput}, tell her
         I'm on my way").
@@ -49,7 +49,7 @@ export default function Settings() {
       <h2 style={{ fontSize: "1.05rem", marginTop: 24 }}>Your color</h2>
       {globalConfig.allowUserThemeOverride ? (
         <>
-          <p style={{ fontSize: "0.85rem", color: "#5b6b62" }}>
+          <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
             The admin has enabled custom colors. Pick any color in the world —
             just for your view.
           </p>
@@ -61,7 +61,7 @@ export default function Settings() {
           />
         </>
       ) : (
-        <p style={{ fontSize: "0.85rem", color: "#5b6b62" }}>
+        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
           The admin has kept a single app-wide color for now, so personal
           color changes are turned off.
         </p>

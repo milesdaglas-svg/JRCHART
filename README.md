@@ -17,6 +17,28 @@ member management** are all built. This is the complete app.
   (hidden on Announcements, since everyone joins that automatically) — type
   an email, and if that person has an account, they're added instantly.
 
+### Latest upgrade — dark redesign, friends, tabs, owner console
+- **Full dark theme.** Replaced the old green/parchment look with a modern
+  dark UI (charcoal surfaces, admin-adjustable accent color). This is a
+  ground-up visual rewrite of `theme.css`.
+- **WhatsApp-style layout.** A slim icon rail (Chats / Status / People /
+  Settings / Admin / Logout) plus a list panel whose content swaps based on
+  the selected tab. The story rail stays pinned at the top of the list panel
+  regardless of tab, **and** Status now has its own full-screen feed tab.
+- **Friend system.** People tab lists everyone on the app. Send a friend
+  request, they accept it from their own People tab, and a private DM chat
+  is created automatically — no messaging strangers before they've accepted.
+- **Roomier chat window.** The composer is now an auto-growing textarea
+  (Enter to send, Shift+Enter for a new line) instead of a single-line input,
+  and message bubbles/padding are sized up so the chat doesn't feel cramped.
+- **Owner console at `/control`.** A completely separate admin surface,
+  gated only by a shared password (`ROOT_ADMIN_PASSWORD` env var) — no
+  Firebase account needed, reachable from any device. From here you can:
+  see every group in the app, delete any group (and its messages), force-add
+  any user into any group by email, post a flagged warning message into any
+  group, and DM any single user directly. Set `ROOT_ADMIN_PASSWORD` in
+  `server/.env` to something only you know before deploying.
+
 ### Cross-app quick reply
 - The 🔗 icon in the sidebar opens a panel with one-tap buttons for
   WhatsApp, Messenger, Instagram, Telegram, X, and Gmail.
