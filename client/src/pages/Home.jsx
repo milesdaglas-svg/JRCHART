@@ -186,7 +186,11 @@ export default function Home() {
     <div className="app-shell">
       <nav className="icon-rail">
         <div className="brand-dot" title="ChatApp" />
-        <button className={`rail-btn ${tab === "chats" ? "active" : ""}`} onClick={() => setTab("chats")} title="Chats">💬</button>
+        <button className={`rail-btn ${tab === "chats" ? "active" : ""}`} onClick={() => setTab("chats")} title="Chats">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 10c0-3.3 3.6-6 8-6s8 2.7 8 6-3.6 6-8 6c-.9 0-1.8-.1-2.6-.3L6 19l1.2-4.4C5.2 13.2 4 11.7 4 10z" />
+  </svg>
+</button>
         <button className={`rail-btn ${tab === "status" ? "active" : ""}`} onClick={() => setTab("status")} title="Status">⭐</button>
         <button className={`rail-btn ${tab === "people" ? "active" : ""}`} onClick={() => setTab("people")} title="People">👥</button>
         <button className={`rail-btn ${tab === "feed" ? "active" : ""}`} onClick={() => setTab("feed")} title="Feed">🖼️</button>
