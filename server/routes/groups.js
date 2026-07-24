@@ -1,15 +1,4 @@
-router.post("/join-default", verifyToken, async (req, res) => {
-  try {
-    await ensureDefaultGroup();
-    await db
-      .collection("groups")
-      .doc(DEFAULT_GROUP_ID)
-      .update({ members: admin.firestore.FieldValue.arrayUnion(req.user.uid) });
-    res.json({ ok: true, groupId: DEFAULT_GROUP_ID });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});const express = require("express");
+const express = require("express");
 const { db, admin } = require("../firebaseAdmin");
 const { verifyToken, requireAdmin } = require("../middleware/verifyToken");
 
@@ -90,6 +79,148 @@ router.post("/join-default", verifyToken, async (req, res) => {
       .doc(DEFAULT_GROUP_ID)
       .update({ members: admin.firestore.FieldValue.arrayUnion(req.user.uid) });
     res.json({ ok: true, groupId: DEFAULT_GROUP_ID });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/groups/discover → public groups you're not in yet
+router.get("/discover", verifyToken, async (req, res) => {
+  try {
+    const snap = await db.collection("groups").get();
+    const reqSnap = await db
+      .collection("groupJoinRequests")
+      .where("uid", "==", req.user.uid)
+      .where("status", "==", "pending")
+      .get();
+    const pendingGroupIds = new Set(reqSnap.docs.map((d) => d.data().groupId));
+
+    const groups = snap.docs
+      .filter((d) => {
+        const data = d.data();
+        return !data.isDM && !data.isDefault && !(data.members || []).includes(req.user.uid);
+      })
+      .map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          name: data.name,
+          memberCount: (data.members || []).length,
+          requested: pendingGroupIds.has(d.id),
+        };
+      });
+
+    res.json(groups);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/groups/:id/request-join → send a join request to the group's creator
+router.post("/:id/request-join", verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const groupDoc = await db.collection("groups").doc(id).get();
+    if (!groupDoc.exists) return res.status(404).json({ error: "Group not found" });
+
+    const group = groupDoc.data();
+    if ((group.members || []).includes(req.user.uid)) {
+      return res.status(400).json({ error: "You're already in this group" });
+    }
+
+    const existing = await db
+      .collection("groupJoinRequests")
+      .where("groupId", "==", id)
+      .where("uid", "==", req.user.uid)
+      .where("status", "==", "pending")
+      .get();
+    if (!existing.empty) return res.json({ ok: true });
+
+    await db.collection("groupJoinRequests").add({
+      groupId: id,
+      uid: req.user.uid,
+      status: "pending",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    res.status(201).json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/groups/join-requests → pending requests for groups YOU created
+router.get("/join-requests", verifyToken, async (req, res) => {
+  try {
+    const ownedSnap = await db
+      .collection("groups")
+      .where("createdBy", "==", req.user.uid)
+      .get();
+    const ownedIds = ownedSnap.docs.map((d) => d.id);
+    if (ownedIds.length === 0) return res.json([]);
+
+    const reqSnap = await db
+      .collection("groupJoinRequests")
+      .where("groupId", "in", ownedIds.slice(0, 10))
+      .where("status", "==", "pending")
+      .get();
+
+    const requests = await Promise.all(
+      reqSnap.docs.map(async (d) => {
+        const data = d.data();
+        const userDoc = await db.collection("users").doc(data.uid).get();
+        const groupDoc = ownedSnap.docs.find((g) => g.id === data.groupId);
+        return {
+          id: d.id,
+          groupId: data.groupId,
+          groupName: groupDoc?.data()?.name,
+          uid: data.uid,
+          displayName: userDoc.data()?.displayName || "Someone",
+        };
+      })
+    );
+    res.json(requests);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/groups/join-requests/:reqId/approve
+router.post("/join-requests/:reqId/approve", verifyToken, async (req, res) => {
+  try {
+    const reqRef = db.collection("groupJoinRequests").doc(req.params.reqId);
+    const reqDoc = await reqRef.get();
+    if (!reqDoc.exists) return res.status(404).json({ error: "Request not found" });
+
+    const { groupId, uid } = reqDoc.data();
+    const groupRef = db.collection("groups").doc(groupId);
+    const groupDoc = await groupRef.get();
+    if (!groupDoc.exists || groupDoc.data().createdBy !== req.user.uid) {
+      return res.status(403).json({ error: "Only that group's creator can approve requests" });
+    }
+
+    await reqRef.update({ status: "approved" });
+    await groupRef.update({ members: admin.firestore.FieldValue.arrayUnion(uid) });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/groups/join-requests/:reqId/decline
+router.post("/join-requests/:reqId/decline", verifyToken, async (req, res) => {
+  try {
+    const reqRef = db.collection("groupJoinRequests").doc(req.params.reqId);
+    const reqDoc = await reqRef.get();
+    if (!reqDoc.exists) return res.status(404).json({ error: "Request not found" });
+
+    const { groupId } = reqDoc.data();
+    const groupDoc = await db.collection("groups").doc(groupId).get();
+    if (!groupDoc.exists || groupDoc.data().createdBy !== req.user.uid) {
+      return res.status(403).json({ error: "Only that group's creator can decline requests" });
+    }
+
+    await reqRef.update({ status: "declined" });
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
