@@ -93,6 +93,7 @@ input::placeholder, textarea::placeholder { color: var(--text-dim); }
   .app-shell { grid-template-columns: 56px 1fr; }
   .app-shell.chat-open .icon-rail,
   .app-shell.chat-open .list-panel { display: none; }
+  .app-shell.chat-open .chat-window { grid-column: 1 / -1; }
   .app-shell:not(.chat-open) .chat-window { display: none; }
 }
 
@@ -419,10 +420,7 @@ input::placeholder, textarea::placeholder { color: var(--text-dim); }
   letter-spacing: 0.02em;
 }
 
-@media (max-width: 860px) {
-  .messages { padding: 16px 12px; }
-  .bubble { max-width: 88%; padding: 10px 13px; font-size: 0.94rem; }
-}
+
 @media (max-width: 860px) {
   .messages { padding: 16px 12px; }
   .bubble { max-width: 88%; padding: 10px 13px; font-size: 0.94rem; }
