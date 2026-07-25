@@ -84,8 +84,8 @@ export default function PostCard({ post, isMine, authedFetch, onDeleted, onTagCl
         <div className="avatar-badge" style={{ width: 36, height: 36, fontSize: "0.8rem" }}>
           {post.authorName?.slice(0, 2).toUpperCase()}
         </div>
-        <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{post.authorName}</div>
-        <div style={{ marginLeft: "auto", fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-dim)" }}>
+        <div style={{ fontWeight: 600, fontSize: "0.9rem", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{post.authorName}</div>
+        <div style={{ marginLeft: "auto", flexShrink: 0, fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-dim)" }}>
           {time.toLocaleDateString()} {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </div>
       </div>

@@ -320,14 +320,14 @@ export default function Home() {
             <div className="chat-topbar">
               <button className="back-btn" onClick={() => setActiveGroup(null)} title="Back">‹</button>
               <div className="avatar-badge">{groupLabel(activeGroup)?.slice(0, 2).toUpperCase()}</div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="chat-list-name">{groupLabel(activeGroup)}</div>
                 {activeGroup.isDefault && (
                   <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>Only the admin posts here</div>
                 )}
               </div>
               {!activeGroup.isDefault && !activeGroup.isDM && (
-                <button className="btn-outline" style={{ padding: "6px 14px", fontSize: "0.82rem" }} onClick={() => setShowAddMember(true)}>
+                <button className="btn-outline" style={{ padding: "6px 14px", fontSize: "0.82rem", flexShrink: 0 }} onClick={() => setShowAddMember(true)}>
                   + Add person
                 </button>
               )}
