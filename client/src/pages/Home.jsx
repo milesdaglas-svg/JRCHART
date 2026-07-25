@@ -27,8 +27,6 @@ export default function Home() {
   const [showAddMember, setShowAddMember] = useState(false);
   const [showBrowseGroups, setShowBrowseGroups] = useState(false);
   const [chatSearch, setChatSearch] = useState("");
-  const [showBrowseGroups, setShowBrowseGroups] = useState(false);
-  const [chatSearch, setChatSearch] = useState("");
   const [showStoryComposer, setShowStoryComposer] = useState(false);
   const [viewingStory, setViewingStory] = useState(null);
   const [showQuickApps, setShowQuickApps] = useState(false);
