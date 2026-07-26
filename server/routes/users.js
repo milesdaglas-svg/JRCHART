@@ -81,6 +81,22 @@ router.put("/me/ai-name", verifyToken, async (req, res) => {
 // GET /api/users → everyone else on the app, with your relationship status
 // to each of them (none / request-sent / request-received / friends).
 // This powers the "People" tab.
+router.put("/me/display-name", verifyToken, async (req, res) => {
+  try {
+    const { displayName } = req.body;
+    if (!displayName || !displayName.trim()) {
+      return res.status(400).json({ error: "displayName is required" });
+    }
+    await db.collection("users").doc(req.user.uid).set(
+      { displayName: displayName.trim() },
+      { merge: true }
+    );
+    res.json({ ok: true, displayName: displayName.trim() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get("/", verifyToken, async (req, res) => {
   try {
     const [usersSnap, reqSnap] = await Promise.all([

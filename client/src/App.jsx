@@ -5,6 +5,7 @@ import Register from "./pages/Register.jsx";
 import Home from "./pages/Home.jsx";
 import Admin from "./pages/Admin.jsx";
 import Settings from "./pages/Settings.jsx";
+import Account from "./pages/Account.jsx";
 import ControlPanel from "./pages/ControlPanel.jsx";
 
 function Protected({ children }) {
@@ -39,6 +40,14 @@ export default function App() {
         element={
           <Protected>
             <Settings />
+          </Protected>
+        }
+      />
+      <Route
+        path="/account"
+        element={
+          <Protected>
+            <Account />
           </Protected>
         }
       />

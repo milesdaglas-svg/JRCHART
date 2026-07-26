@@ -6,6 +6,8 @@ import { API_URL, auth } from "../firebase";
 import MessageBubble from "../components/MessageBubble.jsx";
 import GroupModal from "../components/GroupModal.jsx";
 import AddMemberModal from "../components/AddMemberModal.jsx";
+import BrowseGroupsModal from "../components/BrowseGroupsModal.jsx";
+import SideMenu from "../components/SideMenu.jsx";
 import StoryComposerModal from "../components/StoryComposerModal.jsx";
 import StoryViewerModal from "../components/StoryViewerModal.jsx";
 import QuickAppsPanel from "../components/QuickAppsPanel.jsx";
@@ -26,6 +28,7 @@ export default function Home() {
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [showBrowseGroups, setShowBrowseGroups] = useState(false);
+  const [showSideMenu, setShowSideMenu] = useState(false);
   const [chatSearch, setChatSearch] = useState("");
   const [showStoryComposer, setShowStoryComposer] = useState(false);
   const [viewingStory, setViewingStory] = useState(null);
@@ -196,41 +199,20 @@ export default function Home() {
 
   return (
     <div className={`app-shell${activeGroup && tab === "chats" ? " chat-open" : ""}`}>
-      <nav className="icon-rail">
-        <div className="brand-dot" title="ChatApp" />
-        <button className={`rail-btn ${tab === "chats" ? "active" : ""}`} onClick={() => setTab("chats")} title="Chats">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 10c0-3.3 3.6-6 8-6s8 2.7 8 6-3.6 6-8 6c-.9 0-1.8-.1-2.6-.3L6 19l1.2-4.4C5.2 13.2 4 11.7 4 10z" />
-          </svg>
-        </button>
-        <button className={`rail-btn ${tab === "status" ? "active" : ""}`} onClick={() => setTab("status")} title="Status">⭐</button>
-        <button className={`rail-btn ${tab === "people" ? "active" : ""}`} onClick={() => setTab("people")} title="People">👥</button>
-        <button className={`rail-btn ${tab === "feed" ? "active" : ""}`} onClick={() => setTab("feed")} title="Posts">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <path d="M12 3.5C6.5 3.8 3.7 6.4 3.5 12M20.5 8.2C20.2 5.2 17.8 2.9 14.8 2.6M20.5 15.8C20.2 18.8 17.8 21.1 14.8 21.4M3.5 12c.2 5.6 3 8.2 8.5 8.5" />
-            <path d="M12 9v6M9 12h6" strokeWidth="2.5" />
-          </svg>
-        </button>
-        <div className="rail-spacer" />
-        <button className="rail-btn" onClick={() => setShowQuickApps(true)} title="Quick reply elsewhere">🔗</button>
-        <Link className="rail-btn" to="/settings" title="Settings">⚙️</Link>
-        {profile?.isAdmin && (
-          <Link className="rail-btn" to="/admin" title="Admin">🛠️</Link>
-        )}
-        <button className="rail-btn" onClick={logout} title="Log out">⎋</button>
-      </nav>
-
       {tab === "feed" ? (
-        <div style={{ gridColumn: "2 / 4", overflow: "hidden", background: "var(--bg-app)" }}>
+        <div style={{ gridColumn: "1 / -1", overflow: "hidden", background: "var(--bg-app)" }}>
           <Feed authedFetch={authedFetch} myId={profile?.id} />
         </div>
       ) : (
         <>
       <aside className="list-panel">
         <div className="list-panel-header">
-          <span className="list-panel-title">
-            {tab === "chats" ? "Chats" : tab === "status" ? "Status" : "People"}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button className="icon-btn" onClick={() => setShowSideMenu(true)} title="Menu">☰</button>
+            <span className="list-panel-title">
+              {tab === "chats" ? "Chats" : tab === "status" ? "Status" : "People"}
+            </span>
+          </div>
           {tab === "chats" && (
             <div style={{ display: "flex", gap: 6 }}>
               <button className="icon-btn" onClick={() => setShowBrowseGroups(true)} title="Browse groups">🔍</button>
@@ -372,6 +354,39 @@ export default function Home() {
         )}
       </section>
         </>
+      )}
+
+      <nav className="bottom-nav">
+        <button className={`bottom-nav-btn ${tab === "chats" ? "active" : ""}`} onClick={() => setTab("chats")}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 10c0-3.3 3.6-6 8-6s8 2.7 8 6-3.6 6-8 6c-.9 0-1.8-.1-2.6-.3L6 19l1.2-4.4C5.2 13.2 4 11.7 4 10z" />
+          </svg>
+          <span>Chats</span>
+        </button>
+        <button className={`bottom-nav-btn ${tab === "people" ? "active" : ""}`} onClick={() => setTab("people")}>
+          <span style={{ fontSize: "1.2rem", lineHeight: 1 }}>👥</span>
+          <span>People</span>
+        </button>
+        <button className={`bottom-nav-btn ${tab === "feed" ? "active" : ""}`} onClick={() => setTab("feed")}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <path d="M12 3.5C6.5 3.8 3.7 6.4 3.5 12M20.5 8.2C20.2 5.2 17.8 2.9 14.8 2.6M20.5 15.8C20.2 18.8 17.8 21.1 14.8 21.4M3.5 12c.2 5.6 3 8.2 8.5 8.5" />
+            <path d="M12 9v6M9 12h6" strokeWidth="2.5" />
+          </svg>
+          <span>Feed</span>
+        </button>
+      </nav>
+
+      {showSideMenu && (
+        <SideMenu
+          profile={profile}
+          tab={tab}
+          onClose={() => setShowSideMenu(false)}
+          onStatusClick={() => setTab("status")}
+          onLogout={logout}
+        />
+      )}
+      {showBrowseGroups && (
+        <BrowseGroupsModal authedFetch={authedFetch} onClose={() => setShowBrowseGroups(false)} />
       )}
 
       {showGroupModal && (
