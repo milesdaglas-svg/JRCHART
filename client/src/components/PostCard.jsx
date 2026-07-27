@@ -79,7 +79,7 @@ export default function PostCard({ post, isMine, authedFetch, onDeleted, onTagCl
   }
 
   return (
-    <div style={{ borderBottom: "1px solid var(--border)", padding: "20px 0" }}>
+    <div className="post-card">
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 20px 12px" }}>
         <div className="avatar-badge" style={{ width: 36, height: 36, fontSize: "0.8rem" }}>
           {post.authorName?.slice(0, 2).toUpperCase()}

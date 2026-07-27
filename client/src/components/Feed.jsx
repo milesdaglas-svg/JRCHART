@@ -3,7 +3,7 @@ import PostCard from "./PostCard.jsx";
 import { compressImageToBase64 } from "../utils/compressImage.js";
 import { uploadToCloudinary } from "../utils/uploadToCloudinary.js";
 
-export default function Feed({ authedFetch, myId }) {
+export default function Feed({ authedFetch, myId, stories = [], myStoryPosted, onOpenComposer, onViewStory }) {
   const [posts, setPosts] = useState([]);
   const [view, setView] = useState("forYou"); // forYou | saved
   const [activeTag, setActiveTag] = useState(null);
@@ -88,7 +88,30 @@ export default function Feed({ authedFetch, myId }) {
 
   return (
     <div style={{ maxWidth: 560, margin: "0 auto", width: "100%", height: "100%", overflowY: "auto" }}>
-      <div style={{ display: "flex", gap: 10, padding: "16px 20px 0" }}>
+      <div className="feed-header">
+        <span className="feed-title">Pulse</span>
+        <div className="feed-header-icons">
+          <span title="Liked posts">♥</span>
+          <span title="Messages">💬</span>
+        </div>
+      </div>
+
+      <div className="story-rail" style={{ padding: "0 20px 14px" }}>
+        <div className="story-avatar add-story" onClick={onOpenComposer} title="Add a story">
+          {myStoryPosted ? "✓" : "+"}
+        </div>
+        {stories
+          .filter((s) => s.userId !== myId)
+          .map((s) => (
+            <div key={s.id} className="story-avatar" title={s.text || "Story"} onClick={() => onViewStory?.(s)}>
+              <div style={s.mediaBase64 ? { backgroundImage: `url(${s.mediaBase64})`, backgroundSize: "cover" } : undefined}>
+                {!s.mediaBase64 && (s.userId || "?").slice(0, 2).toUpperCase()}
+              </div>
+            </div>
+          ))}
+      </div>
+
+      <div style={{ display: "flex", gap: 10, padding: "0 20px" }}>
         <button
           className={`pill-btn ${view === "forYou" && !activeTag ? "accent" : ""}`}
           onClick={() => { setView("forYou"); setActiveTag(null); }}
@@ -114,7 +137,7 @@ export default function Feed({ authedFetch, myId }) {
         />
       </form>
 
-      <form onSubmit={handlePost} style={{ padding: 20, borderBottom: "1px solid var(--border)", marginTop: 8 }}>
+      <form onSubmit={handlePost} className="feed-composer">
         {preview && !isVideo && (
           <img src={preview} alt="preview" style={{ width: "100%", borderRadius: 10, marginBottom: 10, maxHeight: 300, objectFit: "cover" }} />
         )}
@@ -139,9 +162,11 @@ export default function Feed({ authedFetch, myId }) {
         </div>
       </form>
 
-      {posts.map((p) => (
-        <PostCard key={p.id} post={p} isMine={p.userId === myId} authedFetch={authedFetch} onDeleted={handleDeleted} onTagClick={setActiveTag} />
-      ))}
+      <div style={{ padding: "4px 16px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
+        {posts.map((p) => (
+          <PostCard key={p.id} post={p} isMine={p.userId === myId} authedFetch={authedFetch} onDeleted={handleDeleted} onTagClick={setActiveTag} />
+        ))}
+      </div>
       {posts.length === 0 && (
         <p style={{ padding: 24, textAlign: "center", color: "var(--text-secondary)" }}>
           {view === "saved" ? "Nothing saved yet." : "No posts here yet — be the first to share something."}

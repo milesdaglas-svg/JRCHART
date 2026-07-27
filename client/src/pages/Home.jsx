@@ -200,8 +200,15 @@ export default function Home() {
   return (
     <div className={`app-shell${activeGroup && tab === "chats" ? " chat-open" : ""}`}>
       {tab === "feed" ? (
-        <div style={{ gridColumn: "1 / -1", overflow: "hidden", background: "var(--bg-app)" }}>
-          <Feed authedFetch={authedFetch} myId={profile?.id} />
+        <div className="feed-shell" style={{ gridColumn: "1 / -1", overflow: "hidden" }}>
+          <Feed
+            authedFetch={authedFetch}
+            myId={profile?.id}
+            stories={stories}
+            myStoryPosted={myStoryPosted}
+            onOpenComposer={() => setShowStoryComposer(true)}
+            onViewStory={setViewingStory}
+          />
         </div>
       ) : (
         <>
