@@ -244,9 +244,10 @@ export default function Home() {
                 className="story-avatar"
                 title={s.text || "Story"}
                 onClick={() => setViewingStory(s)}
-                style={s.mediaBase64 ? { backgroundImage: `url(${s.mediaBase64})`, backgroundSize: "cover" } : undefined}
               >
-                {!s.mediaBase64 && (s.userId || "?").slice(0, 2).toUpperCase()}
+                <div style={s.mediaBase64 ? { backgroundImage: `url(${s.mediaBase64})`, backgroundSize: "cover" } : undefined}>
+                  {!s.mediaBase64 && (s.userId || "?").slice(0, 2).toUpperCase()}
+                </div>
               </div>
             ))}
         </div>
