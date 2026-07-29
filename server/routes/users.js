@@ -78,6 +78,25 @@ router.put("/me/ai-name", verifyToken, async (req, res) => {
   }
 });
 
+// PUT /api/users/me/gemini-key → { geminiApiKey: "..." } — each user's own
+// Gemini API key (from https://aistudio.google.com/apikey), used for their
+// AI compose/voice commands instead of one shared server-wide key.
+router.put("/me/gemini-key", verifyToken, async (req, res) => {
+  try {
+    const { geminiApiKey } = req.body;
+    if (typeof geminiApiKey !== "string") {
+      return res.status(400).json({ error: "geminiApiKey is required" });
+    }
+    await db.collection("users").doc(req.user.uid).set(
+      { geminiApiKey: geminiApiKey.trim() },
+      { merge: true }
+    );
+    res.json({ ok: true, hasKey: !!geminiApiKey.trim() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/users → everyone else on the app, with your relationship status
 // to each of them (none / request-sent / request-received / friends).
 // This powers the "People" tab.

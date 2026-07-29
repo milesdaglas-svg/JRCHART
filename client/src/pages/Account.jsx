@@ -19,6 +19,17 @@ export default function Account() {
     setTimeout(() => setSaved(false), 2000);
   }
 
+  async function handleSaveGeminiKey(e) {
+    e.preventDefault();
+    await authedFetch("/api/users/me/gemini-key", {
+      method: "PUT",
+      body: JSON.stringify({ geminiApiKey: geminiKeyInput.trim() }),
+    });
+    await loadProfile();
+    setKeySaved(true);
+    setTimeout(() => setKeySaved(false), 2000);
+  }
+
   return (
     <div className="admin-panel">
       <Link to="/" className="link-text">← Back to chats</Link>

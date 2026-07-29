@@ -8,6 +8,8 @@ export default function Settings() {
   const { profile, loadProfile, authedFetch } = useAuth();
   const [aiNameInput, setAiNameInput] = useState(profile?.aiName || "Jarvis");
   const [saved, setSaved] = useState(false);
+  const [geminiKeyInput, setGeminiKeyInput] = useState(profile?.geminiApiKey || "");
+  const [keySaved, setKeySaved] = useState(false);
 
   async function handlePick(e) {
     await setPersonalTheme(e.target.value);
@@ -24,6 +26,17 @@ export default function Settings() {
     await loadProfile();
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function handleSaveGeminiKey(e) {
+    e.preventDefault();
+    await authedFetch("/api/users/me/gemini-key", {
+      method: "PUT",
+      body: JSON.stringify({ geminiApiKey: geminiKeyInput.trim() }),
+    });
+    await loadProfile();
+    setKeySaved(true);
+    setTimeout(() => setKeySaved(false), 2000);
   }
 
   return (
@@ -44,6 +57,27 @@ export default function Settings() {
           style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--parchment-line)", flex: 1 }}
         />
         <button className="btn-accent" type="submit">{saved ? "Saved ✓" : "Save"}</button>
+      </form>
+
+      <h2 style={{ fontSize: "1.05rem", marginTop: 24 }}>Your Gemini API key</h2>
+      <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+        The AI assistant runs on your own free Google Gemini key, not a shared
+        one. Grab one at{" "}
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">
+          aistudio.google.com/apikey
+        </a>{" "}
+        (no billing card needed) and paste it below. It's stored on your
+        account and only ever used for your own requests.
+      </p>
+      <form onSubmit={handleSaveGeminiKey} style={{ display: "flex", gap: 10, marginBottom: 28 }}>
+        <input
+          type="password"
+          value={geminiKeyInput}
+          onChange={(e) => setGeminiKeyInput(e.target.value)}
+          placeholder="Paste your Gemini API key"
+          style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--parchment-line)", flex: 1 }}
+        />
+        <button className="btn-accent" type="submit">{keySaved ? "Saved ✓" : "Save"}</button>
       </form>
 
       <h2 style={{ fontSize: "1.05rem", marginTop: 24 }}>Your color</h2>

@@ -4,16 +4,25 @@ const { verifyToken } = require("../middleware/verifyToken");
 
 const router = express.Router();
 
-// Google Gemini has a genuinely free tier (no billing card required) — get a
-// key at https://aistudio.google.com/apikey with the same Google account
-// used for Firebase. Set it as GEMINI_API_KEY in server/.env.
+// Google Gemini has a genuinely free tier (no billing card required). Each
+// user gets their own key at https://aistudio.google.com/apikey and saves it
+// in Settings — it's stored on their Firestore user doc as `geminiApiKey`
+// and used only for that user's own requests. No shared server-wide key.
 const GEMINI_MODEL = "gemini-1.5-flash";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-async function askGemini(systemPrompt, userPrompt) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY is not set on the server");
+// Fetches the calling user's own key. Throws a friendly, client-safe error
+// if they haven't set one yet so the UI can point them at Settings.
+async function getUserGeminiKey(uid) {
+  const doc = await db.collection("users").doc(uid).get();
+  const key = doc.exists ? doc.data().geminiApiKey : null;
+  if (!key) {
+    throw new Error("NO_GEMINI_KEY");
+  }
+  return key;
+}
 
+async function askGemini(apiKey, systemPrompt, userPrompt) {
   const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -61,9 +70,11 @@ router.post("/compose", verifyToken, async (req, res) => {
     const groupDoc = await db.collection("groups").doc(groupId).get();
     if (!groupDoc.exists) return res.status(404).json({ error: "Group not found" });
 
+    const apiKey = await getUserGeminiKey(req.user.uid);
     const history = await getRecentMessages(groupId);
 
     const draftText = await askGemini(
+      apiKey,
       "You are a helpful messaging assistant drafting one chat reply on " +
         "behalf of the app's user. Keep it short, natural, and in the voice " +
         "of a real person texting - no greetings-as-headers, no signing off, " +
@@ -86,6 +97,9 @@ router.post("/compose", verifyToken, async (req, res) => {
 
     res.status(201).json({ id: msgRef.id, text: draftText });
   } catch (err) {
+    if (err.message === "NO_GEMINI_KEY") {
+      return res.status(400).json({ error: "Add your Gemini API key in Settings to use the AI assistant." });
+    }
     console.error("AI compose failed:", err.message);
     res.status(500).json({ error: "AI couldn't draft a reply right now" });
   }
@@ -102,9 +116,11 @@ router.post("/command", verifyToken, async (req, res) => {
     const { transcript, availableGroups = [], activeGroupId } = req.body;
     if (!transcript) return res.status(400).json({ error: "transcript is required" });
 
+    const apiKey = await getUserGeminiKey(req.user.uid);
     const groupList = availableGroups.map((g) => `- ${g.name} (id: ${g.id})`).join("\n");
 
     const raw = await askGemini(
+      apiKey,
       "You are a voice assistant embedded in a chat app. The user just " +
         "spoke a command after a wake word. Decide if they want to send a " +
         "message to one of their chats, and if so, to which one and with " +
@@ -129,6 +145,9 @@ router.post("/command", verifyToken, async (req, res) => {
 
     res.json(parsed);
   } catch (err) {
+    if (err.message === "NO_GEMINI_KEY") {
+      return res.status(400).json({ error: "Add your Gemini API key in Settings to use the voice assistant." });
+    }
     console.error("AI command failed:", err.message);
     res.status(500).json({ error: "AI couldn't process that command right now" });
   }
