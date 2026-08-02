@@ -97,6 +97,22 @@ router.put("/me/gemini-key", verifyToken, async (req, res) => {
   }
 });
 
+router.put("/me/elevenlabs-key", verifyToken, async (req, res) => {
+  try {
+    const { elevenLabsApiKey } = req.body;
+    if (typeof elevenLabsApiKey !== "string") {
+      return res.status(400).json({ error: "elevenLabsApiKey is required" });
+    }
+    await db.collection("users").doc(req.user.uid).set(
+      { elevenLabsApiKey: elevenLabsApiKey.trim() },
+      { merge: true }
+    );
+    res.json({ ok: true, hasKey: !!elevenLabsApiKey.trim() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/users → everyone else on the app, with your relationship status
 // to each of them (none / request-sent / request-received / friends).
 // This powers the "People" tab.
@@ -242,6 +258,46 @@ router.post("/friend-requests/:id/decline", verifyToken, async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+async function getUserElevenLabsKey(uid) {
+  const doc = await db.collection("users").doc(uid).get();
+  const key = doc.exists ? doc.data().elevenLabsApiKey : null;
+  if (!key) throw new Error("NO_ELEVENLABS_KEY");
+  return key;
+}
+
+const ELEVENLABS_VOICE_ID = "Cz0K1kOv9tD8l0b5Qu53";
+
+router.post("/speak", verifyToken, async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: "text is required" });
+    }
+    const apiKey = await getUserElevenLabsKey(req.user.uid);
+    const elevenRes = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "xi-api-key": apiKey },
+        body: JSON.stringify({ text: text.trim(), model_id: "eleven_flash_v2_5" }),
+      }
+    );
+    if (!elevenRes.ok) {
+      const errBody = await elevenRes.text();
+      throw new Error(`ElevenLabs request failed: ${elevenRes.status} ${errBody}`);
+    }
+    const arrayBuffer = await elevenRes.arrayBuffer();
+    const audioBase64 = Buffer.from(arrayBuffer).toString("base64");
+    res.json({ audioBase64 });
+  } catch (err) {
+    if (err.message === "NO_ELEVENLABS_KEY") {
+      return res.status(400).json({ error: "NO_ELEVENLABS_KEY" });
+    }
+    console.error("TTS failed:", err.message);
+    res.status(500).json({ error: "Couldn't generate speech right now" });
   }
 });
 

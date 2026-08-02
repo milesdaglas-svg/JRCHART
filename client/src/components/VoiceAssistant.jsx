@@ -3,11 +3,24 @@ import { useEffect, useRef, useState } from "react";
 const SpeechRecognitionImpl =
   typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
 
-function speak(text) {
+function speakWithBrowserVoice(text) {
   if (!window.speechSynthesis) return;
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.rate = 1.02;
   window.speechSynthesis.speak(utterance);
+}
+
+async function speak(text, authedFetch) {
+  try {
+    const { audioBase64 } = await authedFetch("/api/ai/speak", {
+      method: "POST",
+      body: JSON.stringify({ text }),
+    });
+    const audio = new Audio(`data:audio/mpeg;base64,${audioBase64}`);
+    await audio.play();
+  } catch {
+    speakWithBrowserVoice(text);
+  }
 }
 
 /**

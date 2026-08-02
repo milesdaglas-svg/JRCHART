@@ -10,7 +10,8 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const [geminiKeyInput, setGeminiKeyInput] = useState(profile?.geminiApiKey || "");
   const [keySaved, setKeySaved] = useState(false);
-
+const [elevenKeyInput, setElevenKeyInput] = useState(profile?.elevenLabsApiKey || "");
+  const [elevenKeySaved, setElevenKeySaved] = useState(false);
   async function handlePick(e) {
     await setPersonalTheme(e.target.value);
     await loadProfile();
@@ -37,6 +38,17 @@ export default function Settings() {
     await loadProfile();
     setKeySaved(true);
     setTimeout(() => setKeySaved(false), 2000);
+  }
+
+  async function handleSaveElevenKey(e) {
+    e.preventDefault();
+    await authedFetch("/api/users/me/elevenlabs-key", {
+      method: "PUT",
+      body: JSON.stringify({ elevenLabsApiKey: elevenKeyInput.trim() }),
+    });
+    await loadProfile();
+    setElevenKeySaved(true);
+    setTimeout(() => setElevenKeySaved(false), 2000);
   }
 
   return (
@@ -78,6 +90,16 @@ export default function Settings() {
           style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--parchment-line)", flex: 1 }}
         />
         <button className="btn-accent" type="submit">{keySaved ? "Saved ✓" : "Save"}</button>
+      </form>
+
+      <h2 style={{ fontSize: "1.05rem", marginTop: 24 }}>Your assistant's voice</h2>
+      <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+        For a natural, human-sounding voice instead of the browser's default,
+        get a free key at <a href="https://elevenlabs.io" target="_blank" rel="noreferrer">elevenlabs.io</a> (no card needed) and paste it below.
+      </p>
+      <form onSubmit={handleSaveElevenKey} style={{ display: "flex", gap: 10, marginBottom: 28 }}>
+        <input type="password" value={elevenKeyInput} onChange={(e) => setElevenKeyInput(e.target.value)} placeholder="Paste your ElevenLabs API key" style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--parchment-line)", flex: 1 }} />
+        <button className="btn-accent" type="submit">{elevenKeySaved ? "Saved ✓" : "Save"}</button>
       </form>
 
       <h2 style={{ fontSize: "1.05rem", marginTop: 24 }}>Your color</h2>

@@ -30,6 +30,17 @@ export default function Account() {
     setTimeout(() => setKeySaved(false), 2000);
   }
 
+  async function handleSaveElevenKey(e) {
+    e.preventDefault();
+    await authedFetch("/api/users/me/elevenlabs-key", {
+      method: "PUT",
+      body: JSON.stringify({ elevenLabsApiKey: elevenKeyInput.trim() }),
+    });
+    await loadProfile();
+    setElevenKeySaved(true);
+    setTimeout(() => setElevenKeySaved(false), 2000);
+  }
+
   return (
     <div className="admin-panel">
       <Link to="/" className="link-text">← Back to chats</Link>
