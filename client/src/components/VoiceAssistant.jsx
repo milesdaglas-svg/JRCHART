@@ -100,7 +100,7 @@ export default function VoiceAssistant({ aiName, groups, activeGroupId, authedFe
       }
       speak(result.speech || "Done.", authedFetch);
     } catch (err) {
-      speak(`Listening for "hey ${aiName}".`, authedFetch);
+      speak("Sorry, something went wrong with that.", authedFetch);
     } finally {
       setStatus(enabledRef.current ? "listening" : "off");
     }
@@ -115,7 +115,7 @@ export default function VoiceAssistant({ aiName, groups, activeGroupId, authedFe
     if (next) {
       setStatus("listening");
       recognitionRef.current.start();
-      speak(`Listening for "hey ${aiName}".`);
+      speak(`Listening for "hey ${aiName}".`, authedFetch);
     } else {
       setStatus("off");
       recognitionRef.current.stop();
