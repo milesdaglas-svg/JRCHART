@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
@@ -12,6 +12,13 @@ export default function Settings() {
   const [keySaved, setKeySaved] = useState(false);
 const [elevenKeyInput, setElevenKeyInput] = useState(profile?.elevenLabsApiKey || "");
   const [elevenKeySaved, setElevenKeySaved] = useState(false);
+
+  // Keep these fields synced if profile loads/updates after the page first
+  // renders — otherwise they can show blank even though the key did save.
+  useEffect(() => {
+    setGeminiKeyInput(profile?.geminiApiKey || "");
+    setElevenKeyInput(profile?.elevenLabsApiKey || "");
+  }, [profile]);
   async function handlePick(e) {
     await setPersonalTheme(e.target.value);
     await loadProfile();
