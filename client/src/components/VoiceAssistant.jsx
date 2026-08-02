@@ -58,7 +58,7 @@ export default function VoiceAssistant({ aiName, groups, activeGroupId, authedFe
         if (wakePattern.test(transcript) || new RegExp(`\\b${aiName}\\b`, "i").test(transcript)) {
           awakeRef.current = true;
           setStatus("awake");
-          speak("At your service.");
+          await speak("At your service.", authedFetch);
           // If they said the wake word plus a command in the same breath, use the remainder.
           const remainder = transcript.replace(wakePattern, "").replace(new RegExp(aiName, "i"), "").trim();
           if (remainder.length > 3) {
@@ -98,9 +98,9 @@ export default function VoiceAssistant({ aiName, groups, activeGroupId, authedFe
       if (result.action === "send" && result.groupId && result.message) {
         await onExecuteSend(result.groupId, result.message);
       }
-      speak(result.speech || "Done.");
+      speak(result.speech || "Done.", authedFetch);
     } catch (err) {
-      speak("Sorry, something went wrong with that.");
+      speak(`Listening for "hey ${aiName}".`, authedFetch);
     } finally {
       setStatus(enabledRef.current ? "listening" : "off");
     }
