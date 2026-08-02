@@ -8,7 +8,7 @@ const router = express.Router();
 // user gets their own key at https://aistudio.google.com/apikey and saves it
 // in Settings — it's stored on their Firestore user doc as `geminiApiKey`
 // and used only for that user's own requests. No shared server-wide key.
-const GEMINI_MODEL = "gemini-1.5-flash";
+const GEMINI_MODEL = "gemini-3.5-flash-lite";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 // Fetches the calling user's own key. Throws a friendly, client-safe error
