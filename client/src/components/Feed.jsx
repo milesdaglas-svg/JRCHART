@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import PostCard from "./PostCard.jsx";
+import PostGridTile from "./PostGridTile.jsx";
 import { compressImageToBase64 } from "../utils/compressImage.js";
 import { uploadToCloudinary } from "../utils/uploadToCloudinary.js";
 
 export default function Feed({ authedFetch, myId, stories = [], myStoryPosted, onOpenComposer, onViewStory }) {
   const [posts, setPosts] = useState([]);
   const [view, setView] = useState("forYou"); // forYou | saved
+  const [layout, setLayout] = useState("grid"); // grid | list
+  const [openedPost, setOpenedPost] = useState(null);
   const [activeTag, setActiveTag] = useState(null);
   const [searchInput, setSearchInput] = useState("");
 
@@ -46,17 +49,24 @@ export default function Feed({ authedFetch, myId, stories = [], myStoryPosted, o
     try {
       let mediaBase64 = null;
       let videoUrl = null;
+      let thumbnailUrl = null;
+      let durationSeconds = null;
 
       if (file && isVideo) {
-        setUploadStatus("Uploading video…");
-        videoUrl = await uploadToCloudinary(file, "video");
+        setUploadStatus("Uploading video… 0%");
+        const result = await uploadToCloudinary(file, "video", (pct) => {
+          setUploadStatus(`Uploading video… ${pct}%`);
+        });
+        videoUrl = result.url;
+        thumbnailUrl = result.thumbnailUrl;
+        durationSeconds = result.durationSeconds;
       } else if (file) {
         mediaBase64 = await compressImageToBase64(file);
       }
 
       await authedFetch("/api/posts", {
         method: "POST",
-        body: JSON.stringify({ text: text.trim() || null, mediaBase64, videoUrl }),
+        body: JSON.stringify({ text: text.trim() || null, mediaBase64, videoUrl, thumbnailUrl, durationSeconds }),
       });
 
       setText("");
@@ -126,6 +136,14 @@ export default function Feed({ authedFetch, myId, stories = [], myStoryPosted, o
             #{activeTag} ✕
           </button>
         )}
+        <button
+          className="pill-btn"
+          style={{ marginLeft: "auto" }}
+          onClick={() => setLayout((l) => (l === "grid" ? "list" : "grid"))}
+          title={layout === "grid" ? "Switch to list view" : "Switch to grid view"}
+        >
+          {layout === "grid" ? "▦ Grid" : "☰ List"}
+        </button>
       </div>
 
       <form onSubmit={handleSearch} style={{ padding: "12px 20px 0" }}>
@@ -162,15 +180,41 @@ export default function Feed({ authedFetch, myId, stories = [], myStoryPosted, o
         </div>
       </form>
 
-      <div style={{ padding: "4px 16px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
-        {posts.map((p) => (
-          <PostCard key={p.id} post={p} isMine={p.userId === myId} authedFetch={authedFetch} onDeleted={handleDeleted} onTagClick={setActiveTag} />
-        ))}
-      </div>
+      {layout === "grid" ? (
+        <div style={{ padding: "4px 12px 20px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
+          {posts.map((p) => (
+            <PostGridTile key={p.id} post={p} onOpen={setOpenedPost} />
+          ))}
+        </div>
+      ) : (
+        <div style={{ padding: "4px 16px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
+          {posts.map((p) => (
+            <PostCard key={p.id} post={p} isMine={p.userId === myId} authedFetch={authedFetch} onDeleted={handleDeleted} onTagClick={setActiveTag} />
+          ))}
+        </div>
+      )}
+
       {posts.length === 0 && (
         <p style={{ padding: 24, textAlign: "center", color: "var(--text-secondary)" }}>
           {view === "saved" ? "Nothing saved yet." : "No posts here yet — be the first to share something."}
         </p>
+      )}
+
+      {openedPost && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 60 }}
+          onClick={() => setOpenedPost(null)}
+        >
+          <div style={{ width: 420, maxWidth: "92vw", maxHeight: "88vh", overflowY: "auto", borderRadius: 14 }} onClick={(e) => e.stopPropagation()}>
+            <PostCard
+              post={openedPost}
+              isMine={openedPost.userId === myId}
+              authedFetch={authedFetch}
+              onDeleted={(id) => { handleDeleted(id); setOpenedPost(null); }}
+              onTagClick={(tag) => { setActiveTag(tag); setOpenedPost(null); }}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

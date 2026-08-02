@@ -6,22 +6,6 @@ const router = express.Router();
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // GET /api/stories → all non-expired stories, newest first
-router.put("/me/display-name", verifyToken, async (req, res) => {
-  try {
-    const { displayName } = req.body;
-    if (!displayName || !displayName.trim()) {
-      return res.status(400).json({ error: "displayName is required" });
-    }
-    await db.collection("users").doc(req.user.uid).set(
-      { displayName: displayName.trim() },
-      { merge: true }
-    );
-    res.json({ ok: true, displayName: displayName.trim() });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 router.get("/", verifyToken, async (req, res) => {
   try {
     const now = Date.now();

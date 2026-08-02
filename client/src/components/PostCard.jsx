@@ -91,7 +91,7 @@ export default function PostCard({ post, isMine, authedFetch, onDeleted, onTagCl
       </div>
 
       {post.mediaType === "video" && post.videoUrl && (
-        <video src={post.videoUrl} controls style={{ width: "100%", maxHeight: 520, display: "block", background: "#000" }} />
+        <video src={post.videoUrl} poster={post.thumbnailUrl || undefined} controls style={{ width: "100%", maxHeight: 520, display: "block", background: "#000" }} />
       )}
       {post.mediaType === "image" && post.mediaBase64 && (
         <img src={post.mediaBase64} alt="post" style={{ width: "100%", maxHeight: 480, objectFit: "cover", display: "block" }} />
