@@ -19,9 +19,10 @@ function serializePost(d, myUid) {
     text: data.text || null,
     mediaBase64: data.mediaBase64 || null,
     videoUrl: data.videoUrl || null,
-    thumbnailUrl: data.thumbnailUrl || null,
-    durationSeconds: data.durationSeconds || null,
-    mediaType: data.videoUrl ? "video" : data.mediaBase64 ? "image" : "text",
+    embedPlatform: data.embedPlatform || null,
+    embedId: data.embedId || null,
+    embedHtml: data.embedHtml || null,
+    mediaType: data.embedPlatform ? "embed" : data.videoUrl ? "video" : data.mediaBase64 ? "image" : "text",
     tags: data.tags || [],
     likeCount: data.likedBy?.length || 0,
     likedByMe: data.likedBy?.includes(myUid) || false,
@@ -31,10 +32,6 @@ function serializePost(d, myUid) {
   };
 }
 
-// GET /api/posts → the feed. Optional ?tag=hashtag to browse one topic.
-// With no tag, lightly reorders results toward tags the user has liked
-// before (recency stays the tiebreaker) — a simple "topics you're into"
-// pass without needing separate infrastructure.
 router.get("/", verifyToken, async (req, res) => {
   try {
     const { tag } = req.query;
@@ -65,7 +62,6 @@ router.get("/", verifyToken, async (req, res) => {
   }
 });
 
-// GET /api/posts/saved → posts the current user has bookmarked
 router.get("/saved", verifyToken, async (req, res) => {
   try {
     const snap = await db
@@ -81,14 +77,10 @@ router.get("/saved", verifyToken, async (req, res) => {
   }
 });
 
-// POST /api/posts → { text?, mediaBase64?, videoUrl? }
-// Images use the base64-in-Firestore trick (no billing needed). Videos are
-// uploaded client-side straight to Cloudinary first; this just stores the
-// resulting URL.
 router.post("/", verifyToken, async (req, res) => {
   try {
-    const { text, mediaBase64, videoUrl, thumbnailUrl, durationSeconds } = req.body;
-    if (!text && !mediaBase64 && !videoUrl) {
+    const { text, mediaBase64, videoUrl, embedPlatform, embedId, embedHtml } = req.body;
+    if (!text && !mediaBase64 && !videoUrl && !embedPlatform) {
       return res.status(400).json({ error: "Post needs text, a photo, or a video" });
     }
     if (mediaBase64 && mediaBase64.length > 900_000) {
@@ -103,8 +95,9 @@ router.post("/", verifyToken, async (req, res) => {
       text: text || null,
       mediaBase64: mediaBase64 || null,
       videoUrl: videoUrl || null,
-      thumbnailUrl: thumbnailUrl || null,
-      durationSeconds: durationSeconds || null,
+      embedPlatform: embedPlatform || null,
+      embedId: embedId || null,
+      embedHtml: embedHtml || null,
       tags: extractTags(text),
       likedBy: [],
       savedBy: [],
@@ -117,7 +110,6 @@ router.post("/", verifyToken, async (req, res) => {
   }
 });
 
-// DELETE /api/posts/:id → only your own post
 router.delete("/:id", verifyToken, async (req, res) => {
   try {
     const ref = db.collection("posts").doc(req.params.id);
@@ -139,7 +131,6 @@ router.delete("/:id", verifyToken, async (req, res) => {
   }
 });
 
-// POST /api/posts/:id/like → toggles like on/off for the current user
 router.post("/:id/like", verifyToken, async (req, res) => {
   try {
     const ref = db.collection("posts").doc(req.params.id);
@@ -161,7 +152,6 @@ router.post("/:id/like", verifyToken, async (req, res) => {
   }
 });
 
-// POST /api/posts/:id/save → toggles bookmark on/off
 router.post("/:id/save", verifyToken, async (req, res) => {
   try {
     const ref = db.collection("posts").doc(req.params.id);
@@ -183,7 +173,6 @@ router.post("/:id/save", verifyToken, async (req, res) => {
   }
 });
 
-// GET /api/posts/:id/comments
 router.get("/:id/comments", verifyToken, async (req, res) => {
   try {
     const snap = await db
@@ -198,7 +187,6 @@ router.get("/:id/comments", verifyToken, async (req, res) => {
   }
 });
 
-// POST /api/posts/:id/comments → { text }
 router.post("/:id/comments", verifyToken, async (req, res) => {
   try {
     const { text } = req.body;
@@ -218,46 +206,6 @@ router.post("/:id/comments", verifyToken, async (req, res) => {
     res.status(201).json({ id: commentRef.id });
   } catch (err) {
     res.status(500).json({ error: err.message });
-  }
-});
-
-async function getUserElevenLabsKey(uid) {
-  const doc = await db.collection("users").doc(uid).get();
-  const key = doc.exists ? doc.data().elevenLabsApiKey : null;
-  if (!key) throw new Error("NO_ELEVENLABS_KEY");
-  return key;
-}
-
-const ELEVENLABS_VOICE_ID = "Cz0K1kOv9tD8l0b5Qu53";
-
-router.post("/speak", verifyToken, async (req, res) => {
-  try {
-    const { text } = req.body;
-    if (!text || !text.trim()) {
-      return res.status(400).json({ error: "text is required" });
-    }
-    const apiKey = await getUserElevenLabsKey(req.user.uid);
-    const elevenRes = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "xi-api-key": apiKey },
-        body: JSON.stringify({ text: text.trim(), model_id: "eleven_flash_v2_5" }),
-      }
-    );
-    if (!elevenRes.ok) {
-      const errBody = await elevenRes.text();
-      throw new Error(`ElevenLabs request failed: ${elevenRes.status} ${errBody}`);
-    }
-    const arrayBuffer = await elevenRes.arrayBuffer();
-    const audioBase64 = Buffer.from(arrayBuffer).toString("base64");
-    res.json({ audioBase64 });
-  } catch (err) {
-    if (err.message === "NO_ELEVENLABS_KEY") {
-      return res.status(400).json({ error: "NO_ELEVENLABS_KEY" });
-    }
-    console.error("TTS failed:", err.message);
-    res.status(500).json({ error: "Couldn't generate speech right now" });
   }
 });
 

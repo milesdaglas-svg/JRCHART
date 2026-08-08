@@ -11,6 +11,7 @@ const { router: usersRouter } = require("./routes/users");
 const { router: aiRouter } = require("./routes/ai");
 const { router: friendsRouter } = require("./routes/friends");
 const { router: postsRouter } = require("./routes/posts");
+const { router: embedsRouter } = require("./routes/embeds");
 const { router: rootRouter } = require("./routes/root");
 const { registerChatSocket } = require("./socket/chatSocket");
 
@@ -30,6 +31,7 @@ app.use("/api/users", usersRouter);
 app.use("/api/ai", aiRouter);
 app.use("/api/friends", friendsRouter);
 app.use("/api/posts", postsRouter);
+app.use("/api/embeds", embedsRouter);
 app.use("/api/root", rootRouter);
 
 const io = new Server(server, { cors: { origin: CLIENT_ORIGIN } });

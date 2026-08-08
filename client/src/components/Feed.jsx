@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import PostCard from "./PostCard.jsx";
-import PostGridTile from "./PostGridTile.jsx";
+import VideoEmbed from "./VideoEmbed.jsx";
 import { compressImageToBase64 } from "../utils/compressImage.js";
 import { uploadToCloudinary } from "../utils/uploadToCloudinary.js";
+import { resolveEmbed } from "../utils/resolveEmbed.js";
 
-export default function Feed({ authedFetch, myId, stories = [], myStoryPosted, onOpenComposer, onViewStory }) {
+export default function Feed({ authedFetch, myId }) {
   const [posts, setPosts] = useState([]);
-  const [view, setView] = useState("forYou"); // forYou | saved
-  const [layout, setLayout] = useState("grid"); // grid | list
-  const [openedPost, setOpenedPost] = useState(null);
+  const [view, setView] = useState("forYou");
   const [activeTag, setActiveTag] = useState(null);
   const [searchInput, setSearchInput] = useState("");
 
@@ -18,6 +17,10 @@ export default function Feed({ authedFetch, myId, stories = [], myStoryPosted, o
   const [isVideo, setIsVideo] = useState(false);
   const [posting, setPosting] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
+
+  const [linkInput, setLinkInput] = useState("");
+  const [resolvedEmbed, setResolvedEmbed] = useState(null);
+  const [resolvingLink, setResolvingLink] = useState(false);
 
   async function load() {
     if (view === "saved") {
@@ -40,33 +43,50 @@ export default function Feed({ authedFetch, myId, stories = [], myStoryPosted, o
     setFile(f);
     setIsVideo(f.type.startsWith("video/"));
     setPreview(URL.createObjectURL(f));
+    setResolvedEmbed(null);
+    setLinkInput("");
+  }
+
+  async function handleResolveLink() {
+    if (!linkInput.trim()) return;
+    setResolvingLink(true);
+    try {
+      const result = await resolveEmbed(authedFetch, linkInput.trim());
+      setResolvedEmbed(result);
+      setFile(null);
+      setPreview(null);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setResolvingLink(false);
+    }
   }
 
   async function handlePost(e) {
     e.preventDefault();
-    if (!text.trim() && !file) return;
+    if (!text.trim() && !file && !resolvedEmbed) return;
     setPosting(true);
     try {
       let mediaBase64 = null;
       let videoUrl = null;
-      let thumbnailUrl = null;
-      let durationSeconds = null;
 
       if (file && isVideo) {
-        setUploadStatus("Uploading video… 0%");
-        const result = await uploadToCloudinary(file, "video", (pct) => {
-          setUploadStatus(`Uploading video… ${pct}%`);
-        });
-        videoUrl = result.url;
-        thumbnailUrl = result.thumbnailUrl;
-        durationSeconds = result.durationSeconds;
+        setUploadStatus("Uploading video…");
+        videoUrl = await uploadToCloudinary(file, "video");
       } else if (file) {
         mediaBase64 = await compressImageToBase64(file);
       }
 
       await authedFetch("/api/posts", {
         method: "POST",
-        body: JSON.stringify({ text: text.trim() || null, mediaBase64, videoUrl, thumbnailUrl, durationSeconds }),
+        body: JSON.stringify({
+          text: text.trim() || null,
+          mediaBase64,
+          videoUrl,
+          embedPlatform: resolvedEmbed?.platform || null,
+          embedId: resolvedEmbed?.embedId || null,
+          embedHtml: resolvedEmbed?.embedHtml || null,
+        }),
       });
 
       setText("");
@@ -74,6 +94,8 @@ export default function Feed({ authedFetch, myId, stories = [], myStoryPosted, o
       setPreview(null);
       setIsVideo(false);
       setUploadStatus("");
+      setLinkInput("");
+      setResolvedEmbed(null);
       if (view === "forYou" && !activeTag) await load();
     } catch (err) {
       alert(err.message);
@@ -98,30 +120,7 @@ export default function Feed({ authedFetch, myId, stories = [], myStoryPosted, o
 
   return (
     <div style={{ maxWidth: 560, margin: "0 auto", width: "100%", height: "100%", overflowY: "auto" }}>
-      <div className="feed-header">
-        <span className="feed-title">Pulse</span>
-        <div className="feed-header-icons">
-          <span title="Liked posts">♥</span>
-          <span title="Messages">💬</span>
-        </div>
-      </div>
-
-      <div className="story-rail" style={{ padding: "0 20px 14px" }}>
-        <div className="story-avatar add-story" onClick={onOpenComposer} title="Add a story">
-          {myStoryPosted ? "✓" : "+"}
-        </div>
-        {stories
-          .filter((s) => s.userId !== myId)
-          .map((s) => (
-            <div key={s.id} className="story-avatar" title={s.text || "Story"} onClick={() => onViewStory?.(s)}>
-              <div style={s.mediaBase64 ? { backgroundImage: `url(${s.mediaBase64})`, backgroundSize: "cover" } : undefined}>
-                {!s.mediaBase64 && (s.userId || "?").slice(0, 2).toUpperCase()}
-              </div>
-            </div>
-          ))}
-      </div>
-
-      <div style={{ display: "flex", gap: 10, padding: "0 20px" }}>
+      <div style={{ display: "flex", gap: 10, padding: "16px 20px 0" }}>
         <button
           className={`pill-btn ${view === "forYou" && !activeTag ? "accent" : ""}`}
           onClick={() => { setView("forYou"); setActiveTag(null); }}
@@ -136,14 +135,6 @@ export default function Feed({ authedFetch, myId, stories = [], myStoryPosted, o
             #{activeTag} ✕
           </button>
         )}
-        <button
-          className="pill-btn"
-          style={{ marginLeft: "auto" }}
-          onClick={() => setLayout((l) => (l === "grid" ? "list" : "grid"))}
-          title={layout === "grid" ? "Switch to list view" : "Switch to grid view"}
-        >
-          {layout === "grid" ? "▦ Grid" : "☰ List"}
-        </button>
       </div>
 
       <form onSubmit={handleSearch} style={{ padding: "12px 20px 0" }}>
@@ -155,12 +146,17 @@ export default function Feed({ authedFetch, myId, stories = [], myStoryPosted, o
         />
       </form>
 
-      <form onSubmit={handlePost} className="feed-composer">
+      <form onSubmit={handlePost} style={{ padding: 20, borderBottom: "1px solid var(--border)", marginTop: 8 }}>
         {preview && !isVideo && (
           <img src={preview} alt="preview" style={{ width: "100%", borderRadius: 10, marginBottom: 10, maxHeight: 300, objectFit: "cover" }} />
         )}
         {preview && isVideo && (
           <video src={preview} controls style={{ width: "100%", borderRadius: 10, marginBottom: 10, maxHeight: 300 }} />
+        )}
+        {resolvedEmbed && (
+          <div style={{ marginBottom: 10 }}>
+            <VideoEmbed platform={resolvedEmbed.platform} embedId={resolvedEmbed.embedId} embedHtml={resolvedEmbed.embedHtml} />
+          </div>
         )}
         <textarea
           value={text}
@@ -178,43 +174,26 @@ export default function Feed({ authedFetch, myId, stories = [], myStoryPosted, o
             {posting ? uploadStatus || "Posting…" : "Post"}
           </button>
         </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          <input
+            value={linkInput}
+            onChange={(e) => setLinkInput(e.target.value)}
+            placeholder="Paste a YouTube or TikTok link…"
+            style={{ flex: 1, padding: "8px 12px", borderRadius: 8, fontSize: "0.85rem" }}
+          />
+          <button type="button" className="pill-btn" onClick={handleResolveLink} disabled={resolvingLink}>
+            {resolvingLink ? "Loading…" : "Attach"}
+          </button>
+        </div>
       </form>
 
-      {layout === "grid" ? (
-        <div style={{ padding: "4px 12px 20px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
-          {posts.map((p) => (
-            <PostGridTile key={p.id} post={p} onOpen={setOpenedPost} />
-          ))}
-        </div>
-      ) : (
-        <div style={{ padding: "4px 16px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
-          {posts.map((p) => (
-            <PostCard key={p.id} post={p} isMine={p.userId === myId} authedFetch={authedFetch} onDeleted={handleDeleted} onTagClick={setActiveTag} />
-          ))}
-        </div>
-      )}
-
+      {posts.map((p) => (
+        <PostCard key={p.id} post={p} isMine={p.userId === myId} authedFetch={authedFetch} onDeleted={handleDeleted} onTagClick={setActiveTag} />
+      ))}
       {posts.length === 0 && (
         <p style={{ padding: 24, textAlign: "center", color: "var(--text-secondary)" }}>
           {view === "saved" ? "Nothing saved yet." : "No posts here yet — be the first to share something."}
         </p>
-      )}
-
-      {openedPost && (
-        <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 60 }}
-          onClick={() => setOpenedPost(null)}
-        >
-          <div style={{ width: 420, maxWidth: "92vw", maxHeight: "88vh", overflowY: "auto", borderRadius: 14 }} onClick={(e) => e.stopPropagation()}>
-            <PostCard
-              post={openedPost}
-              isMine={openedPost.userId === myId}
-              authedFetch={authedFetch}
-              onDeleted={(id) => { handleDeleted(id); setOpenedPost(null); }}
-              onTagClick={(tag) => { setActiveTag(tag); setOpenedPost(null); }}
-            />
-          </div>
-        </div>
       )}
     </div>
   );

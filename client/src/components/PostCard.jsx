@@ -1,5 +1,6 @@
 import { useState } from "react";
 import ShareToChatModal from "./ShareToChatModal.jsx";
+import VideoEmbed from "./VideoEmbed.jsx";
 
 export default function PostCard({ post, isMine, authedFetch, onDeleted, onTagClick }) {
   const [liked, setLiked] = useState(post.likedByMe);
@@ -79,25 +80,27 @@ export default function PostCard({ post, isMine, authedFetch, onDeleted, onTagCl
   }
 
   return (
-    <div className="post-card">
+    <div style={{ borderBottom: "1px solid var(--border)", padding: "20px 0" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 20px 12px" }}>
         <div className="avatar-badge" style={{ width: 36, height: 36, fontSize: "0.8rem" }}>
           {post.authorName?.slice(0, 2).toUpperCase()}
         </div>
-        <div style={{ fontWeight: 600, fontSize: "0.9rem", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{post.authorName}</div>
-        <div style={{ marginLeft: "auto", flexShrink: 0, fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-dim)" }}>
+        <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{post.authorName}</div>
+        <div style={{ marginLeft: "auto", fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-dim)" }}>
           {time.toLocaleDateString()} {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </div>
       </div>
 
+      {post.mediaType === "embed" && (
+        <VideoEmbed platform={post.embedPlatform} embedId={post.embedId} embedHtml={post.embedHtml} />
+      )}
       {post.mediaType === "video" && post.videoUrl && (
-        <video src={post.videoUrl} poster={post.thumbnailUrl || undefined} controls style={{ width: "100%", maxHeight: 520, display: "block", background: "#000" }} />
+        <video src={post.videoUrl} controls style={{ width: "100%", maxHeight: 520, display: "block", background: "#000" }} />
       )}
       {post.mediaType === "image" && post.mediaBase64 && (
         <img src={post.mediaBase64} alt="post" style={{ width: "100%", maxHeight: 480, objectFit: "cover", display: "block" }} />
       )}
 
-      {/* Instagram-style action row: like/comment/share on the left, save pinned right */}
       <div style={{ padding: "12px 20px 0" }}>
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
           <button onClick={handleLike} style={{ background: "none", border: "none", fontSize: "1.3rem", color: liked ? "var(--danger)" : "var(--text-secondary)" }}>
