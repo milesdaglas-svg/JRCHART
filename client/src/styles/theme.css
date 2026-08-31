@@ -139,6 +139,10 @@ input::placeholder, textarea::placeholder { color: var(--text-dim); }
   font-weight: 600;
 }
 
+/* ---- Reels viewer ---- */
+.reels-scroll { scrollbar-width: none; }
+.reels-scroll::-webkit-scrollbar { display: none; }
+
 /* ---- Side menu drawer ---- */
 .side-menu-drawer {
   width: 250px;

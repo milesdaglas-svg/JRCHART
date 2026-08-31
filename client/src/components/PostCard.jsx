@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import ShareToChatModal from "./ShareToChatModal.jsx";
 import VideoEmbed from "./VideoEmbed.jsx";
 
-export default function PostCard({ post, isMine, authedFetch, onDeleted, onTagClick }) {
+export default function PostCard({ post, isMine, authedFetch, onDeleted, onTagClick, onOpenVideo }) {
   const [liked, setLiked] = useState(post.likedByMe);
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [saved, setSaved] = useState(post.savedByMe);
@@ -16,6 +16,29 @@ export default function PostCard({ post, isMine, authedFetch, onDeleted, onTagCl
   const time = post.createdAt?._seconds
     ? new Date(post.createdAt._seconds * 1000)
     : new Date();
+
+  const videoRef = useRef(null);
+
+  // Muted autoplay preview in-feed, like Instagram/TikTok, once the
+  // clip scrolls into view. Tapping it opens the full Reels viewer.
+  useEffect(() => {
+    if (post.mediaType !== "video") return;
+    const el = videoRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          const p = el.play();
+          if (p && p.catch) p.catch(() => {});
+        } else {
+          el.pause();
+        }
+      },
+      { threshold: 0.6 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [post.mediaType]);
 
   async function handleLike() {
     setLiked((v) => !v);
@@ -92,10 +115,30 @@ export default function PostCard({ post, isMine, authedFetch, onDeleted, onTagCl
       </div>
 
       {post.mediaType === "embed" && (
-        <VideoEmbed platform={post.embedPlatform} embedId={post.embedId} embedHtml={post.embedHtml} />
+        <div style={{ position: "relative" }}>
+          <VideoEmbed platform={post.embedPlatform} embedId={post.embedId} embedHtml={post.embedHtml} />
+          <button
+            onClick={() => onOpenVideo?.(post)}
+            style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.55)", color: "#fff", border: "none", borderRadius: 14, padding: "5px 10px", fontSize: "0.72rem", cursor: "pointer" }}
+          >
+            ⤢ Reels view
+          </button>
+        </div>
       )}
       {post.mediaType === "video" && post.videoUrl && (
-        <video src={post.videoUrl} controls style={{ width: "100%", maxHeight: 520, display: "block", background: "#000" }} />
+        <div style={{ position: "relative", cursor: "pointer" }} onClick={() => onOpenVideo?.(post)}>
+          <video
+            ref={videoRef}
+            src={post.videoUrl}
+            muted
+            loop
+            playsInline
+            style={{ width: "100%", maxHeight: 520, objectFit: "cover", display: "block", background: "#000" }}
+          />
+          <span style={{ position: "absolute", bottom: 10, right: 12, fontSize: "0.7rem", color: "#fff", background: "rgba(0,0,0,0.45)", padding: "3px 8px", borderRadius: 10 }}>
+            Tap to view
+          </span>
+        </div>
       )}
       {post.mediaType === "image" && post.mediaBase64 && (
         <img src={post.mediaBase64} alt="post" style={{ width: "100%", maxHeight: 480, objectFit: "cover", display: "block" }} />

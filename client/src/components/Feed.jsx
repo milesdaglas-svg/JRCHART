@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import PostCard from "./PostCard.jsx";
 import VideoEmbed from "./VideoEmbed.jsx";
+import ReelsViewer from "./ReelsViewer.jsx";
 import { compressImageToBase64 } from "../utils/compressImage.js";
 import { uploadToCloudinary } from "../utils/uploadToCloudinary.js";
 import { resolveEmbed } from "../utils/resolveEmbed.js";
@@ -21,6 +22,16 @@ export default function Feed({ authedFetch, myId }) {
   const [linkInput, setLinkInput] = useState("");
   const [resolvedEmbed, setResolvedEmbed] = useState(null);
   const [resolvingLink, setResolvingLink] = useState(false);
+
+  // Reels-style viewer: tapping any video/embed post opens this,
+  // starting at that clip, and you can keep scrolling through the rest.
+  const [reelsIndex, setReelsIndex] = useState(null);
+  const videoPosts = posts.filter((p) => p.mediaType === "video" || p.mediaType === "embed");
+
+  function openReels(post) {
+    const idx = videoPosts.findIndex((v) => v.id === post.id);
+    if (idx !== -1) setReelsIndex(idx);
+  }
 
   async function load() {
     if (view === "saved") {
@@ -188,12 +199,33 @@ export default function Feed({ authedFetch, myId }) {
       </form>
 
       {posts.map((p) => (
-        <PostCard key={p.id} post={p} isMine={p.userId === myId} authedFetch={authedFetch} onDeleted={handleDeleted} onTagClick={setActiveTag} />
+        <PostCard
+          key={p.id}
+          post={p}
+          isMine={p.userId === myId}
+          authedFetch={authedFetch}
+          onDeleted={handleDeleted}
+          onTagClick={setActiveTag}
+          onOpenVideo={openReels}
+        />
       ))}
       {posts.length === 0 && (
         <p style={{ padding: 24, textAlign: "center", color: "var(--text-secondary)" }}>
           {view === "saved" ? "Nothing saved yet." : "No posts here yet — be the first to share something."}
         </p>
+      )}
+
+      {reelsIndex !== null && (
+        <ReelsViewer
+          posts={videoPosts}
+          startIndex={reelsIndex}
+          authedFetch={authedFetch}
+          onClose={() => setReelsIndex(null)}
+          onTagClick={(t) => {
+            setReelsIndex(null);
+            setActiveTag(t);
+          }}
+        />
       )}
     </div>
   );
