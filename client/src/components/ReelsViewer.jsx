@@ -244,32 +244,67 @@ export default function ReelsViewer({ posts, startIndex, authedFetch, onClose, o
   });
 
   const containerRef = useRef(null);
-  const slideRefs = useRef([]);
+  const trackRef = useRef(null);
+  const [viewportHeight, setViewportHeight] = useState(() => window.innerHeight);
+  const dragState = useRef({ startY: 0, dragging: false, dragOffset: 0 });
+  const [dragOffset, setDragOffset] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const wheelLock = useRef(false);
 
-  // Jump straight to the video that was tapped, no animation.
+  // Mobile browsers resize the viewport as the URL bar hides/shows —
+  // recompute the page height so paging stays exact.
   useEffect(() => {
-    const el = slideRefs.current[startIndex];
-    if (el) el.scrollIntoView({ block: "start" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    function onResize() {
+      setViewportHeight(window.innerHeight);
+    }
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+    };
   }, []);
 
-  // Whichever slide is >60% visible becomes "active" (autoplays); others pause.
-  useEffect(() => {
-    const root = containerRef.current;
-    if (!root) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
-            setActiveIndex(Number(entry.target.dataset.idx));
-          }
-        });
-      },
-      { root, threshold: [0.6] }
-    );
-    slideRefs.current.forEach((el) => el && observer.observe(el));
-    return () => observer.disconnect();
-  }, [posts.length]);
+  function goTo(index) {
+    setActiveIndex(Math.max(0, Math.min(posts.length - 1, index)));
+  }
+
+  // Swipe up/down = one full page, like TikTok — no partial/free scroll.
+  function handleTouchStart(e) {
+    dragState.current = { startY: e.touches[0].clientY, dragging: true, dragOffset: 0 };
+    setDragging(true);
+  }
+
+  function handleTouchMove(e) {
+    if (!dragState.current.dragging) return;
+    let delta = e.touches[0].clientY - dragState.current.startY;
+    // Resist dragging past the first/last video instead of allowing it to float free.
+    if ((activeIndex === 0 && delta > 0) || (activeIndex === posts.length - 1 && delta < 0)) {
+      delta *= 0.35;
+    }
+    dragState.current.dragOffset = delta;
+    setDragOffset(delta);
+  }
+
+  function handleTouchEnd() {
+    const { dragOffset: delta } = dragState.current;
+    dragState.current.dragging = false;
+    setDragging(false);
+    setDragOffset(0);
+    const threshold = viewportHeight * 0.18;
+    if (delta <= -threshold) goTo(activeIndex + 1);
+    else if (delta >= threshold) goTo(activeIndex - 1);
+    // otherwise snaps back to the same page
+  }
+
+  // Mouse wheel support for desktop testing — one page per gesture.
+  function handleWheel(e) {
+    if (wheelLock.current) return;
+    if (Math.abs(e.deltaY) < 20) return;
+    wheelLock.current = true;
+    goTo(activeIndex + (e.deltaY > 0 ? 1 : -1));
+    setTimeout(() => (wheelLock.current = false), 500);
+  }
 
   function update(postId, patch) {
     setState((prev) => ({
@@ -356,33 +391,44 @@ export default function ReelsViewer({ posts, startIndex, authedFetch, onClose, o
         ✕
       </button>
 
-      <div ref={containerRef} className="reels-scroll" style={{ height: "100%", width: "100%", overflowY: "auto", scrollSnapType: "y mandatory" }}>
-        {posts.map((post, i) => (
-          <div
-            key={post.id}
-            data-idx={i}
-            ref={(el) => (slideRefs.current[i] = el)}
-            style={{ position: "relative", height: "100%", width: "100%", scrollSnapAlign: "start", scrollSnapStop: "always" }}
-          >
-            <ReelSlide
-              post={post}
-              isActive={activeIndex === i}
-              muted={muted}
-              onTap={() => handleTap(post.id)}
-              onDoubleTap={() => handleDoubleTap(post)}
-              showHeartBurst={burstFor === post.id}
-              liked={state[post.id]?.liked}
-              likeCount={state[post.id]?.likeCount || 0}
-              saved={state[post.id]?.saved}
-              commentCount={state[post.id]?.commentCount || 0}
-              onLike={() => handleLike(post)}
-              onSave={() => handleSave(post)}
-              onShare={() => openShare(post)}
-              onOpenComments={() => setCommentsOpenFor(post.id)}
-              onTagClick={onTagClick}
-            />
-          </div>
-        ))}
+      <div
+        ref={containerRef}
+        style={{ height: "100%", width: "100%", overflow: "hidden" }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onWheel={handleWheel}
+      >
+        <div
+          ref={trackRef}
+          style={{
+            height: viewportHeight * posts.length,
+            transform: `translateY(${-activeIndex * viewportHeight + dragOffset}px)`,
+            transition: dragging ? "none" : "transform 0.32s cubic-bezier(0.22, 1, 0.36, 1)",
+          }}
+        >
+          {posts.map((post, i) => (
+            <div key={post.id} style={{ position: "relative", height: viewportHeight, width: "100%" }}>
+              <ReelSlide
+                post={post}
+                isActive={activeIndex === i}
+                muted={muted}
+                onTap={() => handleTap(post.id)}
+                onDoubleTap={() => handleDoubleTap(post)}
+                showHeartBurst={burstFor === post.id}
+                liked={state[post.id]?.liked}
+                likeCount={state[post.id]?.likeCount || 0}
+                saved={state[post.id]?.saved}
+                commentCount={state[post.id]?.commentCount || 0}
+                onLike={() => handleLike(post)}
+                onSave={() => handleSave(post)}
+                onShare={() => openShare(post)}
+                onOpenComments={() => setCommentsOpenFor(post.id)}
+                onTagClick={onTagClick}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* One shared comment sheet, sitting outside the scroll-snap
