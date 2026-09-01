@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import VideoEmbed from "./VideoEmbed.jsx";
+import ForwardIcon from "./ForwardIcon.jsx";
+import ShareToChatModal from "./ShareToChatModal.jsx";
 
 // TikTok-style comment sheet: slides up from the bottom of the slide,
 // leaves the top of the video visible and still playing behind it.
@@ -90,23 +92,28 @@ function CommentSheet({ post, authedFetch, commentCount, onCountChange, open, on
   );
 }
 
-function ReelSlide({ post, isActive, muted, onTap, liked, likeCount, saved, commentCount, onLike, onSave, onOpenComments, onTagClick }) {
+function ReelSlide({ post, isActive, muted, onTap, onDoubleTap, showHeartBurst, liked, likeCount, saved, commentCount, onLike, onSave, onShare, onOpenComments, onTagClick }) {
   const videoRef = useRef(null);
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
+    // Same fix as the in-feed preview: force `muted` onto the real DOM
+    // element, since React doesn't reliably apply it from the JSX prop,
+    // which otherwise silently blocks autoplay and leaves a black frame.
+    v.muted = muted;
     if (isActive) {
       const p = v.play();
       if (p && p.catch) p.catch(() => {});
     } else {
       v.pause();
     }
-  }, [isActive]);
+  }, [isActive, muted]);
 
   return (
     <div
       onClick={onTap}
+      onDoubleClick={onDoubleTap}
       style={{
         position: "relative",
         height: "100%",
@@ -115,22 +122,39 @@ function ReelSlide({ post, isActive, muted, onTap, liked, likeCount, saved, comm
         alignItems: "center",
         justifyContent: "center",
         background: "#000",
+        overflow: "hidden",
       }}
     >
       {post.mediaType === "video" && post.videoUrl && (
         <video
           ref={videoRef}
           src={post.videoUrl}
-          muted={muted}
+          poster={post.thumbnailUrl || undefined}
           loop
           playsInline
-          style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000" }}
+          preload="metadata"
+          style={{ width: "100%", height: "100%", objectFit: "cover", background: "#000" }}
         />
       )}
 
       {post.mediaType === "embed" && (
         <div style={{ width: "100%" }} onClick={(e) => e.stopPropagation()}>
           <VideoEmbed platform={post.embedPlatform} embedId={post.embedId} embedHtml={post.embedHtml} />
+        </div>
+      )}
+
+      {showHeartBurst && (
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+          <span
+            style={{
+              fontSize: "6rem",
+              color: "#fff",
+              filter: "drop-shadow(0 2px 10px rgba(0,0,0,0.5))",
+              animation: "reel-heart-burst 0.7s ease forwards",
+            }}
+          >
+            ♥
+          </span>
         </div>
       )}
 
@@ -160,9 +184,9 @@ function ReelSlide({ post, isActive, muted, onTap, liked, likeCount, saved, comm
         onClick={(e) => e.stopPropagation()}
         style={{ position: "absolute", left: 16, right: 84, bottom: 28, color: "#fff" }}
       >
-        <div style={{ fontWeight: 600, marginBottom: 6, textShadow: "0 1px 3px rgba(0,0,0,0.7)" }}>{post.authorName}</div>
+        <div style={{ fontWeight: 600, marginBottom: 6, fontSize: "0.92rem", textShadow: "0 1px 3px rgba(0,0,0,0.7)" }}>{post.authorName}</div>
         {post.text && (
-          <div style={{ fontSize: "0.88rem", textShadow: "0 1px 3px rgba(0,0,0,0.7)" }}>
+          <div style={{ fontSize: "0.85rem", textShadow: "0 1px 3px rgba(0,0,0,0.7)" }}>
             {post.text.split(/(\s+)/).map((word, i) =>
               word.startsWith("#") ? (
                 <span key={i} onClick={() => onTagClick?.(word.replace("#", ""))} style={{ color: "#8fb8ff", cursor: "pointer" }}>
@@ -181,17 +205,22 @@ function ReelSlide({ post, isActive, muted, onTap, liked, likeCount, saved, comm
         onClick={(e) => e.stopPropagation()}
         style={{ position: "absolute", right: 12, bottom: 28, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}
       >
-        <button onClick={onLike} style={{ background: "none", border: "none", color: liked ? "var(--danger)" : "#fff", fontSize: "1.9rem", textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}>
+        <button onClick={onLike} style={{ background: "none", border: "none", color: liked ? "var(--danger)" : "#fff", fontSize: "1.85rem", textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}>
           {liked ? "♥" : "♡"}
         </button>
-        <span style={{ color: "#fff", fontSize: "0.72rem", marginBottom: 14, textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}>{likeCount}</span>
+        <span style={{ color: "#fff", fontSize: "0.7rem", marginBottom: 12, textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}>{likeCount}</span>
 
-        <button onClick={onOpenComments} style={{ background: "none", border: "none", color: "#fff", fontSize: "1.75rem", textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}>
+        <button onClick={onOpenComments} style={{ background: "none", border: "none", color: "#fff", fontSize: "1.7rem", textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}>
           💬
         </button>
-        <span style={{ color: "#fff", fontSize: "0.72rem", marginBottom: 14, textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}>{commentCount}</span>
+        <span style={{ color: "#fff", fontSize: "0.7rem", marginBottom: 12, textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}>{commentCount}</span>
 
-        <button onClick={onSave} style={{ background: "none", border: "none", color: saved ? "var(--accent)" : "#fff", fontSize: "1.65rem", textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}>
+        <button onClick={onShare} style={{ background: "none", border: "none", color: "#fff", display: "flex", filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.6))" }}>
+          <ForwardIcon size={26} color="#fff" />
+        </button>
+        <span style={{ marginBottom: 12 }} />
+
+        <button onClick={onSave} style={{ background: "none", border: "none", color: saved ? "var(--accent)" : "#fff", fontSize: "1.6rem", textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}>
           {saved ? "🔖" : "📑"}
         </button>
       </div>
@@ -203,6 +232,9 @@ export default function ReelsViewer({ posts, startIndex, authedFetch, onClose, o
   const [activeIndex, setActiveIndex] = useState(startIndex);
   const [muted, setMuted] = useState(true);
   const [commentsOpenFor, setCommentsOpenFor] = useState(null);
+  const [shareFor, setShareFor] = useState(null);
+  const [shareGroups, setShareGroups] = useState([]);
+  const [burstFor, setBurstFor] = useState(null);
   const [state, setState] = useState(() => {
     const m = {};
     posts.forEach((p) => {
@@ -258,6 +290,31 @@ export default function ReelsViewer({ posts, startIndex, authedFetch, onClose, o
     await authedFetch(`/api/posts/${post.id}/save`, { method: "POST" }).catch(() => {});
   }
 
+  async function openShare(post) {
+    const g = await authedFetch("/api/groups").catch(() => []);
+    setShareGroups(g || []);
+    setShareFor(post);
+  }
+
+  async function handleShareTo(groupId) {
+    const post = shareFor;
+    setShareFor(null);
+    if (!post) return;
+    await authedFetch(`/api/groups/${groupId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({
+        text: "",
+        sharedPost: {
+          postId: post.id,
+          authorName: post.authorName,
+          text: post.text,
+          mediaBase64: post.mediaBase64,
+          videoUrl: post.videoUrl,
+        },
+      }),
+    }).catch((err) => alert(err.message));
+  }
+
   function handleTap(postId) {
     // Tapping the video while comments are open closes them first;
     // otherwise it toggles mute, same as TikTok.
@@ -266,6 +323,15 @@ export default function ReelsViewer({ posts, startIndex, authedFetch, onClose, o
     } else {
       setMuted((m) => !m);
     }
+  }
+
+  // Double-tap anywhere on the video likes it and pops a heart, same as
+  // Instagram/TikTok. Only fires a like (never un-likes) on double-tap.
+  function handleDoubleTap(post) {
+    const cur = state[post.id];
+    if (!cur.liked) handleLike(post);
+    setBurstFor(post.id);
+    setTimeout(() => setBurstFor((f) => (f === post.id ? null : f)), 700);
   }
 
   return (
@@ -303,12 +369,15 @@ export default function ReelsViewer({ posts, startIndex, authedFetch, onClose, o
               isActive={activeIndex === i}
               muted={muted}
               onTap={() => handleTap(post.id)}
+              onDoubleTap={() => handleDoubleTap(post)}
+              showHeartBurst={burstFor === post.id}
               liked={state[post.id]?.liked}
               likeCount={state[post.id]?.likeCount || 0}
               saved={state[post.id]?.saved}
               commentCount={state[post.id]?.commentCount || 0}
               onLike={() => handleLike(post)}
               onSave={() => handleSave(post)}
+              onShare={() => openShare(post)}
               onOpenComments={() => setCommentsOpenFor(post.id)}
               onTagClick={onTagClick}
             />
@@ -323,6 +392,10 @@ export default function ReelsViewer({ posts, startIndex, authedFetch, onClose, o
           </div>
         ))}
       </div>
+
+      {shareFor && (
+        <ShareToChatModal groups={shareGroups} onClose={() => setShareFor(null)} onShare={handleShareTo} />
+      )}
     </div>
   );
 }

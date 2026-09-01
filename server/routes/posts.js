@@ -19,6 +19,8 @@ function serializePost(d, myUid) {
     text: data.text || null,
     mediaBase64: data.mediaBase64 || null,
     videoUrl: data.videoUrl || null,
+    thumbnailUrl: data.thumbnailUrl || null,
+    durationSeconds: data.durationSeconds || null,
     embedPlatform: data.embedPlatform || null,
     embedId: data.embedId || null,
     embedHtml: data.embedHtml || null,
@@ -79,7 +81,7 @@ router.get("/saved", verifyToken, async (req, res) => {
 
 router.post("/", verifyToken, async (req, res) => {
   try {
-    const { text, mediaBase64, videoUrl, embedPlatform, embedId, embedHtml } = req.body;
+    const { text, mediaBase64, videoUrl, thumbnailUrl, durationSeconds, embedPlatform, embedId, embedHtml } = req.body;
     if (!text && !mediaBase64 && !videoUrl && !embedPlatform) {
       return res.status(400).json({ error: "Post needs text, a photo, or a video" });
     }
@@ -95,6 +97,8 @@ router.post("/", verifyToken, async (req, res) => {
       text: text || null,
       mediaBase64: mediaBase64 || null,
       videoUrl: videoUrl || null,
+      thumbnailUrl: thumbnailUrl || null,
+      durationSeconds: durationSeconds || null,
       embedPlatform: embedPlatform || null,
       embedId: embedId || null,
       embedHtml: embedHtml || null,

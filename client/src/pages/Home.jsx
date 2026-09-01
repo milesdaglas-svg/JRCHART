@@ -213,6 +213,7 @@ export default function Home() {
       ) : (
         <>
       <aside className="list-panel">
+        <div className="list-panel-topbar">
         <div className="list-panel-header">
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button className="icon-btn" onClick={() => setShowSideMenu(true)} title="Menu">☰</button>
@@ -257,6 +258,7 @@ export default function Home() {
                 </div>
               </div>
             ))}
+        </div>
         </div>
 
         <VoiceAssistant

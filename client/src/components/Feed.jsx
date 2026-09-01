@@ -80,10 +80,15 @@ export default function Feed({ authedFetch, myId }) {
     try {
       let mediaBase64 = null;
       let videoUrl = null;
+      let thumbnailUrl = null;
+      let durationSeconds = null;
 
       if (file && isVideo) {
         setUploadStatus("Uploading video…");
-        videoUrl = await uploadToCloudinary(file, "video");
+        const uploaded = await uploadToCloudinary(file, "video");
+        videoUrl = uploaded.url;
+        thumbnailUrl = uploaded.thumbnailUrl;
+        durationSeconds = uploaded.durationSeconds;
       } else if (file) {
         mediaBase64 = await compressImageToBase64(file);
       }
@@ -94,6 +99,8 @@ export default function Feed({ authedFetch, myId }) {
           text: text.trim() || null,
           mediaBase64,
           videoUrl,
+          thumbnailUrl,
+          durationSeconds,
           embedPlatform: resolvedEmbed?.platform || null,
           embedId: resolvedEmbed?.embedId || null,
           embedHtml: resolvedEmbed?.embedHtml || null,
