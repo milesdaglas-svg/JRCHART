@@ -36,7 +36,7 @@ function CommentSheet({ post, authedFetch, commentCount, onCountChange, open, on
     <div
       onClick={(e) => e.stopPropagation()}
       style={{
-        position: "absolute",
+        position: "fixed",
         left: 0,
         right: 0,
         bottom: 0,
@@ -49,7 +49,7 @@ function CommentSheet({ post, authedFetch, commentCount, onCountChange, open, on
         boxShadow: "0 -8px 28px rgba(0,0,0,0.45)",
         transform: open ? "translateY(0)" : "translateY(100%)",
         transition: "transform 0.32s cubic-bezier(0.22, 1, 0.36, 1)",
-        zIndex: 5,
+        zIndex: 150,
       }}
     >
       <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 6px", cursor: "pointer" }} onClick={onClose}>
@@ -381,17 +381,25 @@ export default function ReelsViewer({ posts, startIndex, authedFetch, onClose, o
               onOpenComments={() => setCommentsOpenFor(post.id)}
               onTagClick={onTagClick}
             />
-            <CommentSheet
-              post={post}
-              authedFetch={authedFetch}
-              commentCount={state[post.id]?.commentCount || 0}
-              onCountChange={(fn) => update(post.id, (cur) => ({ commentCount: fn(cur.commentCount) }))}
-              open={commentsOpenFor === post.id}
-              onClose={() => setCommentsOpenFor(null)}
-            />
           </div>
         ))}
       </div>
+
+      {/* One shared comment sheet, sitting outside the scroll-snap
+          container. Nesting it per-slide (even hidden/translated off
+          screen) still counted toward each slide's scrollable area and
+          threw off scroll-snap alignment, which is what was squishing
+          the video into the bottom of the screen. */}
+      {commentsOpenFor && (
+        <CommentSheet
+          post={posts.find((p) => p.id === commentsOpenFor)}
+          authedFetch={authedFetch}
+          commentCount={state[commentsOpenFor]?.commentCount || 0}
+          onCountChange={(fn) => update(commentsOpenFor, (cur) => ({ commentCount: fn(cur.commentCount) }))}
+          open={!!commentsOpenFor}
+          onClose={() => setCommentsOpenFor(null)}
+        />
+      )}
 
       {shareFor && (
         <ShareToChatModal groups={shareGroups} onClose={() => setShareFor(null)} onShare={handleShareTo} />
