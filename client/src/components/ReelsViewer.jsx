@@ -432,7 +432,7 @@ export default function ReelsViewer({ posts, startIndex, authedFetch, onClose, o
           style={{
             height: viewportHeight * posts.length,
             transform: `translateY(${-activeIndex * viewportHeight + dragOffset}px)`,
-            transition: dragging ? "none" : "transform 0.32s cubic-bezier(0.22, 1, 0.36, 1)",
+            transition: dragging ? "none" : "transform 0.38s cubic-bezier(0.17, 0.67, 0.3, 1.15)",
           }}
         >
           {posts.map((post, i) => (
