@@ -414,6 +414,13 @@ export default function Home() {
           </svg>
           <span>Feed</span>
         </button>
+        <button className={`bottom-nav-btn ${tab === "status" ? "active" : ""}`} onClick={() => setTab("status")}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="8.5" />
+            <circle cx="12" cy="12" r="8.5" strokeDasharray="4 4" opacity="0.5" />
+          </svg>
+          <span>Status</span>
+        </button>
       </nav>
 
       {showSideMenu && (
