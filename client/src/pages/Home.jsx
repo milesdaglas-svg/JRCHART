@@ -270,25 +270,24 @@ export default function Home() {
           </div>
         )}
 
-        <div className="story-rail">
-          <div className="story-avatar add-story" onClick={() => setShowStoryComposer(true)} title="Add a story">
-            {myStoryPosted ? "✓" : "+"}
-          </div>
-          {stories
-            .filter((s) => s.userId !== profile?.id)
-            .map((s) => (
-              <div
-                key={s.id}
-                className="story-avatar"
-                title={s.text || "Story"}
-                onClick={() => setViewingStory(s)}
-              >
-                <div style={s.mediaBase64 ? { backgroundImage: `url(${s.mediaBase64})`, backgroundSize: "cover" } : undefined}>
-                  {!s.mediaBase64 && (s.userId || "?").slice(0, 2).toUpperCase()}
+        {stories.some((s) => s.userId !== profile?.id) && (
+          <div className="story-rail">
+            {stories
+              .filter((s) => s.userId !== profile?.id)
+              .map((s) => (
+                <div
+                  key={s.id}
+                  className="story-avatar"
+                  title={s.text || "Story"}
+                  onClick={() => setViewingStory(s)}
+                >
+                  <div style={s.mediaBase64 ? { backgroundImage: `url(${s.mediaBase64})`, backgroundSize: "cover" } : undefined}>
+                    {!s.mediaBase64 && (s.userId || "?").slice(0, 2).toUpperCase()}
+                  </div>
                 </div>
-              </div>
-            ))}
-        </div>
+              ))}
+          </div>
+        )}
         </div>
 
         <VoiceAssistant
