@@ -18,8 +18,26 @@ import Feed from "../components/Feed.jsx";
 import { compressImageToBase64 } from "../utils/compressImage.js";
 
 export default function Home() {
+  // Track the real, visible viewport height (window.innerHeight doesn't
+  // update reliably as the on-screen keyboard opens/closes on mobile,
+  // which is what made the whole layout — composer included — jump
+  // around instead of staying put while typing).
+  useEffect(() => {
+    function setAppHeight() {
+      const h = window.visualViewport?.height || window.innerHeight;
+      document.documentElement.style.setProperty("--app-height", `${h}px`);
+    }
+    setAppHeight();
+    window.visualViewport?.addEventListener("resize", setAppHeight);
+    window.addEventListener("resize", setAppHeight);
+    return () => {
+      window.visualViewport?.removeEventListener("resize", setAppHeight);
+      window.removeEventListener("resize", setAppHeight);
+    };
+  }, []);
+
   const { profile, authedFetch, logout } = useAuth();
-  const [tab, setTab] = useState("chats"); // chats | status | people
+  const [tab, setTab] = useState("feed"); // chats | status | people | feed
   const [groups, setGroups] = useState([]);
   const [activeGroup, setActiveGroup] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -30,6 +48,7 @@ export default function Home() {
   const [showBrowseGroups, setShowBrowseGroups] = useState(false);
   const [showSideMenu, setShowSideMenu] = useState(false);
   const [chatSearch, setChatSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [showStoryComposer, setShowStoryComposer] = useState(false);
   const [viewingStory, setViewingStory] = useState(null);
   const [showQuickApps, setShowQuickApps] = useState(false);
@@ -223,19 +242,30 @@ export default function Home() {
           </div>
           {tab === "chats" && (
             <div style={{ display: "flex", gap: 6 }}>
-              <button className="icon-btn" onClick={() => setShowBrowseGroups(true)} title="Browse groups">🔍</button>
+              <button
+                className="icon-btn"
+                onClick={() => setSearchOpen((v) => !v)}
+                title="Search chats"
+              >
+                🔍
+              </button>
+              <button className="icon-btn" onClick={() => setShowBrowseGroups(true)} title="Browse groups">🧭</button>
               <button className="icon-btn" onClick={() => setShowGroupModal(true)} title="New group">+</button>
             </div>
           )}
         </div>
 
-        {tab === "chats" && (
+        {tab === "chats" && searchOpen && (
           <div className="chat-search-wrap">
             <input
               className="chat-search-bar"
               placeholder="Search"
               value={chatSearch}
+              autoFocus
               onChange={(e) => setChatSearch(e.target.value)}
+              onBlur={() => {
+                if (!chatSearch) setSearchOpen(false);
+              }}
             />
           </div>
         )}
