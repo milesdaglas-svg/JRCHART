@@ -92,7 +92,7 @@ function CommentSheet({ post, authedFetch, commentCount, onCountChange, open, on
   );
 }
 
-function ReelSlide({ post, isActive, muted, onTap, onDoubleTap, showHeartBurst, liked, likeCount, saved, commentCount, onLike, onSave, onShare, onOpenComments, onTagClick }) {
+function ReelSlide({ post, isActive, muted, onTap, onDoubleTap, showHeartBurst, liked, likeCount, saved, commentCount, onLike, onSave, onShare, onOpenComments, onTagClick, isWideScreen }) {
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -133,7 +133,11 @@ function ReelSlide({ post, isActive, muted, onTap, onDoubleTap, showHeartBurst, 
           loop
           playsInline
           preload="metadata"
-          style={{ width: "100%", height: "100%", objectFit: "cover", background: "#000" }}
+          style={
+            isWideScreen
+              ? { maxWidth: 480, width: "100%", height: "100%", objectFit: "contain", background: "#000", margin: "0 auto", boxShadow: "0 0 60px rgba(0,0,0,0.6)" }
+              : { width: "100%", height: "100%", objectFit: "cover", background: "#000" }
+          }
         />
       )}
 
@@ -246,16 +250,20 @@ export default function ReelsViewer({ posts, startIndex, authedFetch, onClose, o
   const containerRef = useRef(null);
   const trackRef = useRef(null);
   const [viewportHeight, setViewportHeight] = useState(() => window.innerHeight);
+  const [isWideScreen, setIsWideScreen] = useState(() => window.innerWidth > 700);
   const dragState = useRef({ startY: 0, dragging: false, dragOffset: 0 });
   const [dragOffset, setDragOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
   const wheelLock = useRef(false);
 
   // Mobile browsers resize the viewport as the URL bar hides/shows —
-  // recompute the page height so paging stays exact.
+  // recompute the page height so paging stays exact. Also tracks whether
+  // we're on a wide (desktop) screen, where the video shouldn't crop to
+  // fill edge-to-edge like it does on a phone.
   useEffect(() => {
     function onResize() {
       setViewportHeight(window.innerHeight);
+      setIsWideScreen(window.innerWidth > 700);
     }
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
@@ -277,6 +285,10 @@ export default function ReelsViewer({ posts, startIndex, authedFetch, onClose, o
 
   function handleTouchMove(e) {
     if (!dragState.current.dragging) return;
+    // Block the browser's native pull-to-refresh / rubber-band bounce —
+    // without this, swiping down to reach the previous video gets eaten
+    // by Chrome's own overscroll gesture instead of reaching our handler.
+    e.preventDefault();
     let delta = e.touches[0].clientY - dragState.current.startY;
     // Resist dragging past the first/last video instead of allowing it to float free.
     if ((activeIndex === 0 && delta > 0) || (activeIndex === posts.length - 1 && delta < 0)) {
@@ -299,12 +311,32 @@ export default function ReelsViewer({ posts, startIndex, authedFetch, onClose, o
 
   // Mouse wheel support for desktop testing — one page per gesture.
   function handleWheel(e) {
+    e.preventDefault();
     if (wheelLock.current) return;
-    if (Math.abs(e.deltaY) < 20) return;
+    if (Math.abs(e.deltaY) < 12) return;
     wheelLock.current = true;
     goTo(activeIndex + (e.deltaY > 0 ? 1 : -1));
     setTimeout(() => (wheelLock.current = false), 500);
   }
+
+  // Attached as real (non-passive) listeners so preventDefault() above
+  // actually takes effect — React's JSX onTouchMove/onWheel are passive
+  // by default and silently ignore preventDefault(), which is what let
+  // the browser's own scroll/refresh gesture win over ours.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener("touchstart", handleTouchStart, { passive: false });
+    el.addEventListener("touchmove", handleTouchMove, { passive: false });
+    el.addEventListener("touchend", handleTouchEnd, { passive: false });
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener("touchstart", handleTouchStart);
+      el.removeEventListener("touchmove", handleTouchMove);
+      el.removeEventListener("touchend", handleTouchEnd);
+      el.removeEventListener("wheel", handleWheel);
+    };
+  });
 
   function update(postId, patch) {
     setState((prev) => ({
@@ -393,11 +425,7 @@ export default function ReelsViewer({ posts, startIndex, authedFetch, onClose, o
 
       <div
         ref={containerRef}
-        style={{ height: "100%", width: "100%", overflow: "hidden" }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onWheel={handleWheel}
+        style={{ height: "100%", width: "100%", overflow: "hidden", overscrollBehavior: "none", touchAction: "none" }}
       >
         <div
           ref={trackRef}
@@ -413,6 +441,7 @@ export default function ReelsViewer({ posts, startIndex, authedFetch, onClose, o
                 post={post}
                 isActive={activeIndex === i}
                 muted={muted}
+                isWideScreen={isWideScreen}
                 onTap={() => handleTap(post.id)}
                 onDoubleTap={() => handleDoubleTap(post)}
                 showHeartBurst={burstFor === post.id}
