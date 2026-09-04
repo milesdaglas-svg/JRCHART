@@ -16,6 +16,7 @@ import PeopleList from "../components/PeopleList.jsx";
 import StatusFeed from "../components/StatusFeed.jsx";
 import Feed from "../components/Feed.jsx";
 import { compressImageToBase64 } from "../utils/compressImage.js";
+import { uploadToCloudinary } from "../utils/uploadToCloudinary.js";
 
 export default function Home() {
   // Track the real, visible viewport height (window.innerHeight doesn't
@@ -42,6 +43,17 @@ export default function Home() {
   const [activeGroup, setActiveGroup] = useState(null);
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
+
+  // Voice notes: tap-to-record, WhatsApp-style — the send button morphs
+  // into a mic when the draft is empty, tapping it records, tapping the
+  // checkmark uploads and sends, tapping the trash discards.
+  const [recording, setRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [sendingVoiceNote, setSendingVoiceNote] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
+  const recordingCancelledRef = useRef(false);
   const [stories, setStories] = useState([]);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
@@ -123,6 +135,71 @@ export default function Home() {
       setMessages((prev) => [...prev, message]);
     }
     socketRef.current.emit("send-message", { roomId: groupId, message });
+  }
+
+  async function startRecording() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      alert("Voice notes need microphone access, which this browser doesn't support.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      recordingCancelledRef.current = false;
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        clearInterval(recordingTimerRef.current);
+        if (!recordingCancelledRef.current && audioChunksRef.current.length) {
+          uploadAndSendVoiceNote();
+        }
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setRecording(true);
+      setRecordingSeconds(0);
+      recordingTimerRef.current = setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
+    } catch {
+      alert("Couldn't access your microphone — check your browser's permissions.");
+    }
+  }
+
+  function stopRecording(cancel) {
+    recordingCancelledRef.current = cancel;
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
+  }
+
+  async function uploadAndSendVoiceNote() {
+    if (!activeGroup) return;
+    const durationSeconds = recordingSeconds;
+    const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+    const file = new File([blob], "voice-note.webm", { type: "audio/webm" });
+    setSendingVoiceNote(true);
+    try {
+      const uploaded = await uploadToCloudinary(file, "video");
+      const { id } = await authedFetch(`/api/groups/${activeGroup.id}/messages`, {
+        method: "POST",
+        body: JSON.stringify({ audioUrl: uploaded.url, audioDuration: uploaded.durationSeconds || durationSeconds }),
+      });
+      const message = {
+        id,
+        senderId: profile.id,
+        text: "",
+        audioUrl: uploaded.url,
+        audioDuration: uploaded.durationSeconds || durationSeconds,
+        createdAt: Date.now(),
+      };
+      setMessages((prev) => [...prev, message]);
+      socketRef.current.emit("send-message", { roomId: activeGroup.id, message });
+    } catch (err) {
+      alert(err.message || "Couldn't send that voice note — try again.");
+    } finally {
+      setSendingVoiceNote(false);
+    }
   }
 
   async function handleSend(e) {
@@ -367,25 +444,62 @@ export default function Home() {
             </div>
 
             <form className="composer" onSubmit={handleSend}>
-              <textarea
-                ref={textareaRef}
-                value={draft}
-                onChange={handleDraftChange}
-                onKeyDown={handleComposerKeyDown}
-                rows={1}
-                placeholder={
-                  activeGroup.isDefault && !profile?.isAdmin
-                    ? "Only the admin can post here"
-                    : `Type a message… (or "${aiName}, ..." to let AI draft it)`
-                }
-                disabled={(activeGroup.isDefault && !profile?.isAdmin) || aiBusy}
-              />
-              <button
-                className="btn-accent"
-                disabled={(activeGroup.isDefault && !profile?.isAdmin) || aiBusy}
-              >
-                {aiBusy ? `${aiName}…` : "Send"}
-              </button>
+              {recording ? (
+                <div className="voice-recording-bar">
+                  <button type="button" className="voice-recording-cancel" onClick={() => stopRecording(true)} title="Discard">
+                    🗑️
+                  </button>
+                  <span className="voice-recording-dot" />
+                  <span className="voice-recording-timer">
+                    {String(Math.floor(recordingSeconds / 60)).padStart(2, "0")}:
+                    {String(recordingSeconds % 60).padStart(2, "0")}
+                  </span>
+                  <span style={{ flex: 1 }} />
+                </div>
+              ) : (
+                <textarea
+                  ref={textareaRef}
+                  value={draft}
+                  onChange={handleDraftChange}
+                  onKeyDown={handleComposerKeyDown}
+                  rows={1}
+                  placeholder={
+                    activeGroup.isDefault && !profile?.isAdmin
+                      ? "Only the admin can post here"
+                      : `Type a message… (or "${aiName}, ..." to let AI draft it)`
+                  }
+                  disabled={(activeGroup.isDefault && !profile?.isAdmin) || aiBusy}
+                />
+              )}
+
+              {recording ? (
+                <button
+                  type="button"
+                  className="btn-accent composer-round-btn"
+                  onClick={() => stopRecording(false)}
+                  title="Send voice note"
+                >
+                  ✓
+                </button>
+              ) : draft.trim() ? (
+                <button
+                  className="btn-accent composer-round-btn"
+                  disabled={(activeGroup.isDefault && !profile?.isAdmin) || aiBusy}
+                  title="Send"
+                >
+                  {aiBusy ? "…" : "➤"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-accent composer-round-btn"
+                  onClick={startRecording}
+                  disabled={(activeGroup.isDefault && !profile?.isAdmin) || aiBusy || sendingVoiceNote}
+                  title="Record a voice note"
+                >
+                  {sendingVoiceNote ? "…" : "🎤"}
+                </button>
+              )}
             </form>
           </>
         ) : (

@@ -1,3 +1,55 @@
+import { useRef, useState } from "react";
+
+function VoiceNoteBubble({ url, duration, isMine }) {
+  const audioRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0); // 0–1
+  const [current, setCurrent] = useState(0);
+
+  function toggle() {
+    const el = audioRef.current;
+    if (!el) return;
+    if (playing) {
+      el.pause();
+    } else {
+      el.play();
+    }
+  }
+
+  function fmt(seconds) {
+    const s = Math.max(0, Math.round(seconds || 0));
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  }
+
+  return (
+    <div className="voice-note-bubble">
+      <audio
+        ref={audioRef}
+        src={url}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => {
+          setPlaying(false);
+          setProgress(0);
+          setCurrent(0);
+        }}
+        onTimeUpdate={(e) => {
+          const el = e.currentTarget;
+          setCurrent(el.currentTime);
+          if (el.duration) setProgress(el.currentTime / el.duration);
+        }}
+      />
+      <button type="button" className="voice-note-play" onClick={toggle}>
+        {playing ? "⏸" : "▶"}
+      </button>
+      <div className="voice-note-track">
+        <div className="voice-note-track-fill" style={{ width: `${progress * 100}%` }} />
+      </div>
+      <span className="voice-note-time">{fmt(playing || current ? current : duration)}</span>
+    </div>
+  );
+}
+
 export default function MessageBubble({ message, isMine, onDelete }) {
   const time = message.createdAt
     ? new Date(
@@ -35,6 +87,10 @@ export default function MessageBubble({ message, isMine, onDelete }) {
             {message.sharedPost.text && <div style={{ opacity: 0.85 }}>{message.sharedPost.text}</div>}
           </div>
         </div>
+      )}
+
+      {message.audioUrl && (
+        <VoiceNoteBubble url={message.audioUrl} duration={message.audioDuration} isMine={isMine} />
       )}
 
       {message.text && <div>{message.text}</div>}

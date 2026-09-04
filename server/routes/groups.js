@@ -294,8 +294,8 @@ router.get("/:id/messages", verifyToken, async (req, res) => {
 router.post("/:id/messages", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { text, sharedPost } = req.body;
-    if (!text && !sharedPost) return res.status(400).json({ error: "Message text required" });
+    const { text, sharedPost, audioUrl, audioDuration } = req.body;
+    if (!text && !sharedPost && !audioUrl) return res.status(400).json({ error: "Message text required" });
 
     const groupDoc = await db.collection("groups").doc(id).get();
     if (!groupDoc.exists) return res.status(404).json({ error: "Group not found" });
@@ -311,6 +311,10 @@ router.post("/:id/messages", verifyToken, async (req, res) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     if (sharedPost) payload.sharedPost = sharedPost;
+    if (audioUrl) {
+      payload.audioUrl = audioUrl;
+      payload.audioDuration = audioDuration || 0;
+    }
 
     const msgRef = await db.collection("groups").doc(id).collection("messages").add(payload);
 
