@@ -48,6 +48,4 @@ router.put("/users/:uid/promote", verifyToken, requireAdmin, async (req, res) =>
   }
 });
 
-.
-
 module.exports = { router };

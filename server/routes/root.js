@@ -172,6 +172,4 @@ router.post("/dm", async (req, res) => {
   }
 });
 
-.
-
 module.exports = { router };

@@ -261,6 +261,4 @@ router.post("/friend-requests/:id/decline", verifyToken, async (req, res) => {
   }
 });
 
-.
-
 module.exports = { router };

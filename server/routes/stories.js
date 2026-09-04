@@ -77,6 +77,4 @@ router.delete("/cleanup-expired", verifyToken, async (req, res) => {
   }
 });
 
-.
-
 module.exports = { router };
