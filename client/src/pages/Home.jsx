@@ -241,7 +241,7 @@ export default function Home() {
             </span>
           </div>
           {tab === "chats" && (
-            <div style={{ display: "flex", gap: 6 }}>
+            <div className="header-icon-group">
               <button
                 className="icon-btn"
                 onClick={() => setSearchOpen((v) => !v)}
@@ -249,6 +249,14 @@ export default function Home() {
               >
                 🔍
               </button>
+              <VoiceAssistant
+                compact
+                aiName={aiName}
+                groups={groups}
+                activeGroupId={activeGroup?.id}
+                authedFetch={authedFetch}
+                onExecuteSend={sendMessageToGroup}
+              />
               <button className="icon-btn" onClick={() => setShowBrowseGroups(true)} title="Browse groups">🧭</button>
               <button className="icon-btn" onClick={() => setShowGroupModal(true)} title="New group">+</button>
             </div>
@@ -289,14 +297,6 @@ export default function Home() {
           </div>
         )}
         </div>
-
-        <VoiceAssistant
-          aiName={aiName}
-          groups={groups}
-          activeGroupId={activeGroup?.id}
-          authedFetch={authedFetch}
-          onExecuteSend={sendMessageToGroup}
-        />
 
         {tab === "chats" && (
           <div className="scroll-panel">

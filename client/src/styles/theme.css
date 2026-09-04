@@ -197,6 +197,24 @@ input::placeholder, textarea::placeholder { color: var(--text-dim); }
   z-index: 6;
   background: var(--bg-sidebar);
   flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.header-icon-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.header-icon-group .icon-btn {
+  border: none;
+  background: transparent;
+}
+.header-icon-group .icon-btn:hover {
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .list-panel-header {

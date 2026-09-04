@@ -32,7 +32,7 @@ async function speak(text, authedFetch) {
  * (Chrome/Edge). Listening only runs while the toggle is on and the tab
  * is focused — this is a browser limitation, not something we can bypass.
  */
-export default function VoiceAssistant({ aiName, groups, activeGroupId, authedFetch, onExecuteSend }) {
+export default function VoiceAssistant({ aiName, groups, activeGroupId, authedFetch, onExecuteSend, compact }) {
   const [enabled, setEnabled] = useState(false);
   const [status, setStatus] = useState("off"); // off | listening | awake | thinking
   const [lastHeard, setLastHeard] = useState("");
@@ -127,6 +127,19 @@ export default function VoiceAssistant({ aiName, groups, activeGroupId, authedFe
       <div style={{ fontSize: "0.75rem", color: "rgba(247,244,234,0.55)", padding: "0 16px" }}>
         Voice assistant needs Chrome or Edge.
       </div>
+    );
+  }
+
+  if (compact) {
+    return (
+      <button
+        onClick={toggle}
+        className="icon-btn"
+        style={{ color: enabled ? "var(--accent)" : undefined, borderColor: enabled ? "var(--accent)" : undefined }}
+        title={`Say "hey ${aiName}" to wake it up — ${status}`}
+      >
+        🎙️
+      </button>
     );
   }
 
