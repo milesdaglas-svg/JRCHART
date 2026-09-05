@@ -110,8 +110,17 @@ export default function PostCard({ post, isMine, authedFetch, onDeleted, onTagCl
   return (
     <div style={{ borderBottom: "1px solid var(--border)", padding: "18px 0" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 16px 12px" }}>
-        <div className="avatar-badge" style={{ width: 34, height: 34, fontSize: "0.75rem", flexShrink: 0 }}>
-          {post.authorName?.slice(0, 2).toUpperCase()}
+        <div
+          className="avatar-badge"
+          style={{
+            width: 34,
+            height: 34,
+            fontSize: "0.75rem",
+            flexShrink: 0,
+            ...(post.authorPhotoURL ? { backgroundImage: `url(${post.authorPhotoURL})`, backgroundSize: "cover", backgroundPosition: "center" } : {}),
+          }}
+        >
+          {!post.authorPhotoURL && post.authorName?.slice(0, 2).toUpperCase()}
         </div>
         <div style={{ fontWeight: 600, fontSize: "clamp(0.8rem, 3vw, 0.9rem)" }}>{post.authorName}</div>
         <div style={{ marginLeft: "auto", fontFamily: "var(--font-mono)", fontSize: "clamp(0.6rem, 2.2vw, 0.7rem)", color: "var(--text-dim)" }}>

@@ -16,6 +16,7 @@ function serializePost(d, myUid) {
     id: d.id,
     userId: data.userId,
     authorName: data.authorName,
+    authorPhotoURL: data.authorPhotoURL || null,
     text: data.text || null,
     mediaBase64: data.mediaBase64 || null,
     videoUrl: data.videoUrl || null,
@@ -94,6 +95,7 @@ router.post("/", verifyToken, async (req, res) => {
     const ref = await db.collection("posts").add({
       userId: req.user.uid,
       authorName: userDoc.data()?.displayName || "Someone",
+      authorPhotoURL: userDoc.data()?.photoURL || null,
       text: text || null,
       mediaBase64: mediaBase64 || null,
       videoUrl: videoUrl || null,

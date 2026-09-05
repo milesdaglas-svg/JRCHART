@@ -10,7 +10,7 @@ function loadSeen() {
   }
 }
 
-export default function StatusFeed({ stories, myId, onAddStory, onView, myStoryPosted }) {
+export default function StatusFeed({ stories, myId, myPhotoURL, onAddStory, onView, myStoryPosted }) {
   const [seen, setSeen] = useState(loadSeen);
 
   // Re-check what's been seen whenever the story list changes (e.g. after
@@ -50,11 +50,15 @@ export default function StatusFeed({ stories, myId, onAddStory, onView, myStoryP
           className="status-thumb"
           style={{
             cursor: myStoryPosted ? "pointer" : "default",
-            ...(mine[mine.length - 1]?.mediaBase64 ? { backgroundImage: `url(${mine[mine.length - 1].mediaBase64})` } : {}),
+            ...(mine[mine.length - 1]?.mediaBase64
+              ? { backgroundImage: `url(${mine[mine.length - 1].mediaBase64})` }
+              : myPhotoURL
+              ? { backgroundImage: `url(${myPhotoURL})`, backgroundSize: "cover" }
+              : {}),
           }}
           onClick={() => myStoryPosted && openGroup(mine)}
         >
-          {!mine[mine.length - 1]?.mediaBase64 && !myStoryPosted && (
+          {!mine[mine.length - 1]?.mediaBase64 && !myPhotoURL && !myStoryPosted && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: "1.4rem" }}>+</div>
           )}
         </div>

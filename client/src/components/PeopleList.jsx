@@ -76,7 +76,12 @@ export default function PeopleList({ authedFetch, onOpenDM }) {
       <div className="list-section-label">Everyone on ChatApp</div>
       {users.map((u) => (
         <div key={u.id} className="person-row">
-          <div className="avatar-badge">{u.displayName?.slice(0, 2).toUpperCase()}</div>
+          <div
+            className="avatar-badge"
+            style={u.photoURL ? { backgroundImage: `url(${u.photoURL})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+          >
+            {!u.photoURL && u.displayName?.slice(0, 2).toUpperCase()}
+          </div>
           <div>
             <div className="person-name">{u.displayName}</div>
             <div className="person-sub">{u.email}</div>

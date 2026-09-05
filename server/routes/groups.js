@@ -37,6 +37,7 @@ router.get("/", verifyToken, async (req, res) => {
           if (otherUid) {
             const otherDoc = await db.collection("users").doc(otherUid).get();
             data.displayName = otherDoc.data()?.displayName || "Direct message";
+            data.displayPhotoURL = otherDoc.data()?.photoURL || null;
           }
         }
         return data;

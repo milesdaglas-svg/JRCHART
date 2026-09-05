@@ -14,8 +14,16 @@ export default function SideMenu({ profile, onClose, onStatusClick, onLogout, ta
     >
       <div className="side-menu-drawer" onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 22 }}>
-          <div className="avatar-badge" style={{ width: 42, height: 42, fontSize: "0.85rem" }}>
-            {profile?.displayName?.slice(0, 2).toUpperCase() || "U"}
+          <div
+            className="avatar-badge"
+            style={{
+              width: 42,
+              height: 42,
+              fontSize: "0.85rem",
+              ...(profile?.photoURL ? { backgroundImage: `url(${profile.photoURL})`, backgroundSize: "cover", backgroundPosition: "center" } : {}),
+            }}
+          >
+            {!profile?.photoURL && (profile?.displayName?.slice(0, 2).toUpperCase() || "U")}
           </div>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontWeight: 600, fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

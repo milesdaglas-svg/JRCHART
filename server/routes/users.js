@@ -40,6 +40,37 @@ router.get("/me", verifyToken, async (req, res) => {
   }
 });
 
+// PUT /api/users/me/display-name → { displayName }
+router.put("/me/display-name", verifyToken, async (req, res) => {
+  try {
+    const { displayName } = req.body;
+    if (!displayName || !displayName.trim()) {
+      return res.status(400).json({ error: "Display name can't be empty" });
+    }
+    await db.collection("users").doc(req.user.uid).set({ displayName: displayName.trim() }, { merge: true });
+    res.json({ ok: true, displayName: displayName.trim() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/users/me/photo → { photoBase64 }
+// Same storage approach as post/story images (a compressed data URL stored
+// directly in Firestore) since there's no linked Storage bucket.
+router.put("/me/photo", verifyToken, async (req, res) => {
+  try {
+    const { photoBase64 } = req.body;
+    if (!photoBase64) return res.status(400).json({ error: "No photo provided" });
+    if (photoBase64.length > 900_000) {
+      return res.status(413).json({ error: "That photo is too large — try a smaller one" });
+    }
+    await db.collection("users").doc(req.user.uid).set({ photoURL: photoBase64 }, { merge: true });
+    res.json({ ok: true, photoURL: photoBase64 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // PUT /api/users/me/theme → { themeColor: "#RRGGBB" | null }
 // Only takes effect client-side if appConfig.global.allowUserThemeOverride is true —
 // enforced by the client UI, but we double check server-side too for safety.
@@ -150,7 +181,7 @@ router.get("/", verifyToken, async (req, res) => {
           status = "request-received";
           requestId = receivedFrom.get(d.id);
         }
-        return { id: d.id, displayName: u.displayName, email: u.email, status, requestId };
+        return { id: d.id, displayName: u.displayName, email: u.email, photoURL: u.photoURL || null, status, requestId };
       });
 
     res.json(people);

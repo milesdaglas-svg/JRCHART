@@ -99,8 +99,16 @@ export default function StoryViewerModal({ stories, startIndex, isMine, authedFe
 
       {/* Header */}
       <div style={{ position: "absolute", top: 22, left: 12, right: 12, display: "flex", alignItems: "center", gap: 10, zIndex: 5, color: "#fff" }}>
-        <div className="avatar-badge" style={{ width: 34, height: 34, fontSize: "0.75rem" }}>
-          {(story.authorName || "?").slice(0, 2).toUpperCase()}
+        <div
+          className="avatar-badge"
+          style={{
+            width: 34,
+            height: 34,
+            fontSize: "0.75rem",
+            ...(story.authorPhotoURL ? { backgroundImage: `url(${story.authorPhotoURL})`, backgroundSize: "cover", backgroundPosition: "center" } : {}),
+          }}
+        >
+          {!story.authorPhotoURL && (story.authorName || "?").slice(0, 2).toUpperCase()}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: "0.9rem", textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}>{story.authorName}</div>
@@ -211,8 +219,16 @@ export default function StoryViewerModal({ stories, startIndex, isMine, authedFe
             )}
             {viewers?.map((v) => (
               <div key={v.userId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0" }}>
-                <div className="avatar-badge" style={{ width: 32, height: 32, fontSize: "0.7rem" }}>
-                  {(v.viewerName || "?").slice(0, 2).toUpperCase()}
+                <div
+                  className="avatar-badge"
+                  style={{
+                    width: 32,
+                    height: 32,
+                    fontSize: "0.7rem",
+                    ...(v.viewerPhotoURL ? { backgroundImage: `url(${v.viewerPhotoURL})`, backgroundSize: "cover", backgroundPosition: "center" } : {}),
+                  }}
+                >
+                  {!v.viewerPhotoURL && (v.viewerName || "?").slice(0, 2).toUpperCase()}
                 </div>
                 <span style={{ color: "var(--text-primary)", fontSize: "0.88rem" }}>{v.viewerName}</span>
               </div>

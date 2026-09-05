@@ -47,6 +47,7 @@ router.post("/", verifyToken, async (req, res) => {
     const ref = await db.collection("stories").add({
       userId: req.user.uid,
       authorName: userDoc.data()?.displayName || "Someone",
+      authorPhotoURL: userDoc.data()?.photoURL || null,
       text: text || null,
       mediaBase64: mediaBase64 || null,
       videoUrl: videoUrl || null,
@@ -77,6 +78,7 @@ router.post("/:id/view", verifyToken, async (req, res) => {
       .doc(req.user.uid)
       .set({
         viewerName: userDoc.data()?.displayName || "Someone",
+        viewerPhotoURL: userDoc.data()?.photoURL || null,
         viewedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
     res.json({ ok: true });

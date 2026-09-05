@@ -431,7 +431,12 @@ export default function Home() {
                 className={`chat-list-item ${activeGroup?.id === g.id ? "active" : ""}`}
                 onClick={() => setActiveGroup(g)}
               >
-                <div className="avatar-badge">{groupLabel(g)?.slice(0, 2).toUpperCase()}</div>
+                <div
+                  className="avatar-badge"
+                  style={g.displayPhotoURL ? { backgroundImage: `url(${g.displayPhotoURL})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+                >
+                  {!g.displayPhotoURL && groupLabel(g)?.slice(0, 2).toUpperCase()}
+                </div>
                 <div>
                   <div className="chat-list-name">
                     {groupLabel(g)} {g.isDefault && "📢"}
@@ -449,6 +454,7 @@ export default function Home() {
           <StatusFeed
             stories={stories}
             myId={profile?.id}
+            myPhotoURL={profile?.photoURL}
             myStoryPosted={myStoryPosted}
             onAddStory={() => setShowStoryComposer(true)}
             onView={openStoryGroup}
@@ -463,7 +469,12 @@ export default function Home() {
           <>
             <div className="chat-topbar">
               <button className="back-btn" onClick={() => setActiveGroup(null)} title="Back">‹</button>
-              <div className="avatar-badge">{groupLabel(activeGroup)?.slice(0, 2).toUpperCase()}</div>
+              <div
+                className="avatar-badge"
+                style={activeGroup.displayPhotoURL ? { backgroundImage: `url(${activeGroup.displayPhotoURL})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+              >
+                {!activeGroup.displayPhotoURL && groupLabel(activeGroup)?.slice(0, 2).toUpperCase()}
+              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="chat-list-name">{groupLabel(activeGroup)}</div>
                 {activeGroup.isDefault && (
