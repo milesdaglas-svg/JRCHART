@@ -4,12 +4,14 @@ export default function StoryComposerModal({ onClose, onSubmit }) {
   const [text, setText] = useState("");
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [isVideo, setIsVideo] = useState(false);
   const [busy, setBusy] = useState(false);
 
   function handleFile(e) {
     const f = e.target.files?.[0];
     if (!f) return;
     setFile(f);
+    setIsVideo(f.type.startsWith("video/"));
     setPreview(URL.createObjectURL(f));
   }
 
@@ -41,11 +43,19 @@ export default function StoryComposerModal({ onClose, onSubmit }) {
         <h1 style={{ fontSize: "1.2rem" }}>New story</h1>
         <p className="subtitle">Visible to everyone for 24 hours.</p>
 
-        {preview && (
+        {preview && !isVideo && (
           <img
             src={preview}
             alt="preview"
             style={{ width: "100%", borderRadius: 8, marginBottom: 12, maxHeight: 220, objectFit: "cover" }}
+          />
+        )}
+        {preview && isVideo && (
+          <video
+            src={preview}
+            controls
+            muted
+            style={{ width: "100%", borderRadius: 8, marginBottom: 12, maxHeight: 220 }}
           />
         )}
 
@@ -55,8 +65,8 @@ export default function StoryComposerModal({ onClose, onSubmit }) {
         </div>
 
         <div className="field">
-          <label>Photo (optional)</label>
-          <input type="file" accept="image/*" onChange={handleFile} />
+          <label>Photo or video (optional)</label>
+          <input type="file" accept="image/*,video/*" onChange={handleFile} />
         </div>
 
         <div style={{ display: "flex", gap: 10, marginTop: 10 }}>

@@ -14,6 +14,7 @@ import QuickAppsPanel from "../components/QuickAppsPanel.jsx";
 import VoiceAssistant from "../components/VoiceAssistant.jsx";
 import PeopleList from "../components/PeopleList.jsx";
 import StatusFeed from "../components/StatusFeed.jsx";
+import ShareToChatModal from "../components/ShareToChatModal.jsx";
 import Feed from "../components/Feed.jsx";
 import { compressImageToBase64 } from "../utils/compressImage.js";
 import { uploadToCloudinary } from "../utils/uploadToCloudinary.js";
@@ -62,7 +63,44 @@ export default function Home() {
   const [chatSearch, setChatSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [showStoryComposer, setShowStoryComposer] = useState(false);
-  const [viewingStory, setViewingStory] = useState(null);
+  const [viewingStoryGroup, setViewingStoryGroup] = useState(null); // { stories, startIndex, isMine }
+  const [shareStoryTarget, setShareStoryTarget] = useState(null);
+
+  function openStoryGroup(storyOrGroup, maybeIndex) {
+    if (Array.isArray(storyOrGroup)) {
+      setViewingStoryGroup({
+        stories: storyOrGroup,
+        startIndex: maybeIndex || 0,
+        isMine: storyOrGroup[0]?.userId === profile?.id,
+      });
+      return;
+    }
+    const story = storyOrGroup;
+    const group = stories
+      .filter((s) => s.userId === story.userId)
+      .sort((a, b) => (a.createdAt?._seconds || 0) - (b.createdAt?._seconds || 0));
+    const idx = Math.max(0, group.findIndex((s) => s.id === story.id));
+    setViewingStoryGroup({ stories: group, startIndex: idx, isMine: story.userId === profile?.id });
+  }
+
+  async function handleReshareStory(groupId) {
+    const story = shareStoryTarget;
+    if (!story) return;
+    await authedFetch(`/api/groups/${groupId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({
+        text: "",
+        sharedPost: {
+          postId: story.id,
+          authorName: story.authorName,
+          text: story.text,
+          mediaBase64: story.mediaBase64,
+          videoUrl: story.videoUrl,
+        },
+      }),
+    }).catch((err) => alert(err.message));
+    setShareStoryTarget(null);
+  }
   const [showQuickApps, setShowQuickApps] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const socketRef = useRef(null);
@@ -272,10 +310,18 @@ export default function Home() {
 
   async function handleAddStory({ text, file }) {
     let mediaBase64 = null;
-    if (file) mediaBase64 = await compressImageToBase64(file);
+    let videoUrl = null;
+    let thumbnailUrl = null;
+    if (file && file.type.startsWith("video/")) {
+      const uploaded = await uploadToCloudinary(file, "video");
+      videoUrl = uploaded.url;
+      thumbnailUrl = uploaded.thumbnailUrl;
+    } else if (file) {
+      mediaBase64 = await compressImageToBase64(file);
+    }
     await authedFetch("/api/stories", {
       method: "POST",
-      body: JSON.stringify({ text: text || null, mediaBase64 }),
+      body: JSON.stringify({ text: text || null, mediaBase64, videoUrl, thumbnailUrl }),
     });
     const s = await authedFetch("/api/stories").catch(() => []);
     setStories(s);
@@ -303,7 +349,7 @@ export default function Home() {
             stories={stories}
             myStoryPosted={myStoryPosted}
             onOpenComposer={() => setShowStoryComposer(true)}
-            onViewStory={setViewingStory}
+            onViewStory={openStoryGroup}
           />
         </div>
       ) : (
@@ -364,7 +410,7 @@ export default function Home() {
                   key={s.id}
                   className="story-avatar"
                   title={s.text || "Story"}
-                  onClick={() => setViewingStory(s)}
+                  onClick={() => openStoryGroup(s)}
                 >
                   <div style={s.mediaBase64 ? { backgroundImage: `url(${s.mediaBase64})`, backgroundSize: "cover" } : undefined}>
                     {!s.mediaBase64 && (s.userId || "?").slice(0, 2).toUpperCase()}
@@ -405,7 +451,7 @@ export default function Home() {
             myId={profile?.id}
             myStoryPosted={myStoryPosted}
             onAddStory={() => setShowStoryComposer(true)}
-            onView={setViewingStory}
+            onView={openStoryGroup}
           />
         )}
 
@@ -555,8 +601,18 @@ export default function Home() {
       {showStoryComposer && (
         <StoryComposerModal onClose={() => setShowStoryComposer(false)} onSubmit={handleAddStory} />
       )}
-      {viewingStory && (
-        <StoryViewerModal story={viewingStory} onClose={() => setViewingStory(null)} />
+      {viewingStoryGroup && (
+        <StoryViewerModal
+          stories={viewingStoryGroup.stories}
+          startIndex={viewingStoryGroup.startIndex}
+          isMine={viewingStoryGroup.isMine}
+          authedFetch={authedFetch}
+          onClose={() => setViewingStoryGroup(null)}
+          onReshare={(story) => setShareStoryTarget(story)}
+        />
+      )}
+      {shareStoryTarget && (
+        <ShareToChatModal groups={groups} onClose={() => setShareStoryTarget(null)} onShare={handleReshareStory} />
       )}
       {showAddMember && (
         <AddMemberModal onClose={() => setShowAddMember(false)} onAdd={handleAddMember} />

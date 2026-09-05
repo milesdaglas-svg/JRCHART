@@ -491,6 +491,24 @@ input::placeholder, textarea::placeholder { color: var(--text-dim); }
   flex-shrink: 0;
 }
 
+.status-add-badge {
+  position: absolute;
+  left: 40px;
+  top: 40px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  border: 2px solid var(--bg-sidebar);
+  font-size: 0.85rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
 /* ---- Chat window ---- */
 .chat-window {
   display: flex;
